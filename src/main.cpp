@@ -32,6 +32,7 @@
 #include <Preferences.h>
 #include <USB.h>
 #include <USBHIDConsumerControl.h>
+#include <USBHIDKeyboard.h>
 #include <USBHIDMouse.h>
 
 // ─── Board Selection ────────────────────────────────────────────────────────
@@ -76,9 +77,9 @@ static const bool LED_INVERT = BOARD_LED_INVERTED;
 
 // ─── Device Modes ───────────────────────────────────────────────────────────
 
-enum DeviceMode { MODE_AIR_MOUSE, MODE_TRACKPAD, MODE_MEDIA };
+enum DeviceMode { MODE_AIR_MOUSE, MODE_TRACKPAD, MODE_MEDIA, MODE_DPAD };
 
-static const char *modeNames[] = {"AIR MOUSE", "TRACKPAD", "MEDIA"};
+static const char *modeNames[] = {"AIR MOUSE", "TRACKPAD", "MEDIA", "D-PAD"};
 static DeviceMode currentMode = MODE_AIR_MOUSE;
 
 // ─── Configuration (defaults, overridden by saved prefs) ────────────────────
@@ -93,6 +94,8 @@ static const float SCROLL_DEADZONE = 0.008f;
 static const float SWIPE_THRESHOLD = 0.25f;
 
 static const float SENSITIVITY_STEP = 0.15f; // 15% per adjustment
+
+static const float DPAD_SWIPE_THRESHOLD = 0.15f;
 
 static const int BLE_SCAN_DURATION_SEC = 10;
 static const int RECONNECT_DELAY_MS = 3000;
@@ -168,6 +171,7 @@ struct ControllerSlot {
 
 USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
+USBHIDKeyboard Keyboard;
 Preferences prefs;
 
 static ControllerSlot slots[MAX_CONTROLLERS];
@@ -279,6 +283,9 @@ void ledIndicateMode(DeviceMode mode) {
     break;
   case MODE_MEDIA:
     ledFlash(3, 60, 60);
+    break;
+  case MODE_DPAD:
+    ledFlash(4, 50, 50);
     break;
   }
   // Restore solid if connected
@@ -752,6 +759,47 @@ void processMediaGestures(ControllerSlot &s) {
   }
 }
 
+// ─── D-Pad Mode (arrow key navigation) ──────────────────────────────────────
+// Maps trackpad swipes to arrow keys for TV-style app navigation.
+// Click = Enter, App button = Back (Escape).
+
+void processDpad(ControllerSlot &s) {
+  bool isTouching = (s.current.xTouch > 0.01f || s.current.yTouch > 0.01f);
+
+  if (isTouching) {
+    if (!s.swipeActive) {
+      s.swipeStartX = s.current.xTouch;
+      s.prevTouchY = s.current.yTouch;
+      s.swipeActive = true;
+    }
+    s.lastTouchX = s.current.xTouch;
+    s.prevTouchX = s.current.yTouch; // reuse for Y tracking
+  } else if (s.swipeActive) {
+    float dx = s.lastTouchX - s.swipeStartX;
+    float dy = s.prevTouchX - s.prevTouchY; // end Y - start Y
+
+    // Pick the dominant axis
+    if (fabsf(dx) > fabsf(dy) && fabsf(dx) > DPAD_SWIPE_THRESHOLD) {
+      if (dx > 0) {
+        Keyboard.pressRaw(HID_KEY_ARROW_RIGHT);
+        Keyboard.releaseRaw(HID_KEY_ARROW_RIGHT);
+      } else {
+        Keyboard.pressRaw(HID_KEY_ARROW_LEFT);
+        Keyboard.releaseRaw(HID_KEY_ARROW_LEFT);
+      }
+    } else if (fabsf(dy) > DPAD_SWIPE_THRESHOLD) {
+      if (dy > 0) {
+        Keyboard.pressRaw(HID_KEY_ARROW_DOWN);
+        Keyboard.releaseRaw(HID_KEY_ARROW_DOWN);
+      } else {
+        Keyboard.pressRaw(HID_KEY_ARROW_UP);
+        Keyboard.releaseRaw(HID_KEY_ARROW_UP);
+      }
+    }
+    s.swipeActive = false;
+  }
+}
+
 // ─── Movement Dispatcher ────────────────────────────────────────────────────
 
 void processMovement(ControllerSlot &s) {
@@ -768,6 +816,9 @@ void processMovement(ControllerSlot &s) {
     break;
   case MODE_MEDIA:
     processMediaGestures(s);
+    break;
+  case MODE_DPAD:
+    processDpad(s);
     break;
   }
 }
@@ -859,7 +910,7 @@ void processButtons(ControllerSlot &s) {
 
   if (!s.current.homeBtn && s.prevHomeBtn && !s.homeLongFired && !sensActive) {
     int m = (int)currentMode + 1;
-    if (m > MODE_MEDIA)
+    if (m > MODE_DPAD)
       m = MODE_AIR_MOUSE;
     currentMode = (DeviceMode)m;
 
@@ -887,6 +938,27 @@ void processButtons(ControllerSlot &s) {
       ConsumerControl.press(CONSUMER_CONTROL_MUTE);
       ConsumerControl.release();
     }
+    if (!sensActive && s.current.volUpBtn && !s.prevVolUpBtn) {
+      ConsumerControl.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
+      ConsumerControl.release();
+    }
+    if (!comboActive && !sensActive && s.current.volDownBtn &&
+        !s.prevVolDownBtn) {
+      ConsumerControl.press(CONSUMER_CONTROL_VOLUME_DECREMENT);
+      ConsumerControl.release();
+    }
+  } else if (currentMode == MODE_DPAD) {
+    // Click = Enter/Select
+    if (s.current.clickBtn && !s.prevClickBtn) {
+      Keyboard.pressRaw(HID_KEY_ENTER);
+      Keyboard.releaseRaw(HID_KEY_ENTER);
+    }
+    // App button = Back (Escape)
+    if (!comboActive && !sensActive && s.current.appBtn && !s.prevAppBtn) {
+      Keyboard.pressRaw(HID_KEY_ESCAPE);
+      Keyboard.releaseRaw(HID_KEY_ESCAPE);
+    }
+    // Volume buttons = volume control
     if (!sensActive && s.current.volUpBtn && !s.prevVolUpBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
       ConsumerControl.release();
@@ -953,6 +1025,7 @@ void setup() {
   // USB HID
   Mouse.begin();
   ConsumerControl.begin();
+  Keyboard.begin();
   USB.begin();
   Serial.println("[USB] HID ready");
 

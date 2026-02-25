@@ -18,10 +18,11 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 
 ## Features
 
-- **Three modes** — cycle with Home button:
-  - ✈️ **Air Mouse** — point and move, orientation-based cursor control with EMA smoothing
+- **Four modes** — cycle with Home button:
+  - ✈️ **Air Mouse** — point and move, gyroscope-based cursor control with EMA smoothing
   - 🖱️ **Trackpad** — use the Daydream touchpad as a mouse trackpad
   - 🎵 **Media** — swipe for next/previous track, click for play/pause, volume buttons
+  - 🎮 **D-Pad** — arrow key navigation for TV-style apps (Vacuum Tube, etc.)
 - **Dual controller support** — connect two Daydream controllers simultaneously
 - **Adjustable sensitivity** — Home + Vol Up/Down, auto-saved to flash
 - **Smart LED feedback** — breathing while scanning, solid when connected, off when sleeping
@@ -82,7 +83,7 @@ platformio run -e xiao_esp32s3 --target upload
 ### All Modes
 | Input | Action |
 |-------|--------|
-| Home (short press) | Cycle mode: Air Mouse → Trackpad → Media |
+| Home (short press) | Cycle mode: Air Mouse → Trackpad → Media → D-Pad |
 | Home (hold 1s) | Recenter orientation (air mouse) |
 | App + Vol Down | Switch active controller (dual mode) |
 | Home + Vol Up | Increase sensitivity (saved to flash) |
@@ -103,6 +104,14 @@ platformio run -e xiao_esp32s3 --target upload
 | Swipe right | Next track |
 | Swipe left | Previous track |
 | App button | Mute |
+| Vol Up / Vol Down | Volume up / down |
+
+### D-Pad Mode
+| Input | Action |
+|-------|--------|
+| Swipe up / down / left / right | Arrow keys |
+| Trackpad click | Enter / Select |
+| App button | Back (Escape) |
 | Vol Up / Vol Down | Volume up / down |
 
 ### LED States
