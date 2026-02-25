@@ -1,4 +1,4 @@
-# 🎮 Daydream Air Mouse
+# Daydream Air Mouse
 
 Turn a Google Daydream controller into a wireless USB air mouse and media remote — no phone, no headset, no Google apps needed.
 
@@ -7,9 +7,9 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 ## Features
 
 - **Three modes** — cycle with Home button:
-  - ✈️ **Air Mouse** — point and move, orientation-based cursor control with EMA smoothing
-  - 🖱️ **Trackpad** — use the Daydream touchpad as a mouse trackpad
-  - 🎵 **Media** — swipe for next/previous track, click for play/pause, volume buttons
+  - **Air Mouse** — point and move, orientation-based cursor control with EMA smoothing
+  - **Trackpad** — use the Daydream touchpad as a mouse trackpad
+  - **Media** — swipe for next/previous track, click for play/pause, volume buttons
 - **Dual controller support** — connect two Daydream controllers simultaneously
 - **Adjustable sensitivity** — Home + Vol Up/Down, auto-saved to flash
 - **Smart LED feedback** — breathing while scanning, solid when connected, off when sleeping
@@ -20,7 +20,7 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 
 | Board | Status | Notes |
 |-------|--------|-------|
-| [Seeed XIAO ESP32-S3](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) | ✅ Official | 21×17.5mm, smallest option |
+| [Seeed XIAO ESP32-S3](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) | Official | 21×17.5mm, smallest option |
 
 > **Want to add your board?** See [CONTRIBUTING.md](CONTRIBUTING.md) — any ESP32-S3 board with native USB works.
 
@@ -30,7 +30,7 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 
 Flash directly from your browser — no downloads needed:
 
-### **👉 [Install Firmware](https://delulu-delilah.github.io/daydream-airmouse/)**
+### **[Install Firmware](https://delulu-delilah.github.io/daydream-airmouse/)**
 
 > Requires **Chrome** or **Edge** on desktop. Select your board, connect via USB, click Install.
 
@@ -80,9 +80,9 @@ platformio run -e xiao_esp32s3 --target upload
 ### LED States
 | Pattern | Meaning |
 |---------|---------|
-| 💨 Breathing | Scanning for controllers |
-| 🔵 Solid | Connected |
-| ⚫ Off | Sleeping (press Boot to wake) |
+| Breathing | Scanning for controllers |
+| Solid | Connected |
+| Off | Sleeping (press Boot to wake) |
 
 ## Project Structure
 
