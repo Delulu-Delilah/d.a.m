@@ -85,7 +85,7 @@ static DeviceMode currentMode = MODE_AIR_MOUSE;
 
 static float airMouseSensitivity = 30.0f;
 static float trackpadSensitivity = 6.0f;
-static float scrollSensitivity = 3.0f;
+static float scrollSensitivity = 1.0f;
 static const float SMOOTH_ALPHA = 0.45f;
 
 static const float AIR_MOUSE_DEADZONE = 0.15f;
@@ -200,7 +200,7 @@ void loadPreferences() {
   prefs.begin("ddmouse", true); // read-only
   airMouseSensitivity = prefs.getFloat("airSens", 30.0f);
   trackpadSensitivity = prefs.getFloat("tpadSens", 6.0f);
-  scrollSensitivity = prefs.getFloat("scrollSens", 3.0f);
+  scrollSensitivity = prefs.getFloat("scrollSens", 1.0f);
   prefs.end();
   Serial.printf("[PREF] Loaded: air=%.0f tpad=%.1f scroll=%.1f\n",
                 airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
