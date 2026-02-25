@@ -92,6 +92,7 @@ static const int MAX_CONTROLLERS = 2;
 
 static NimBLEUUID SERVICE_UUID("0000fe55-0000-1000-8000-00805f9b34fb");
 static NimBLEUUID CHAR_UUID("00000001-1000-1000-8000-00805f9b34fb");
+static NimBLEUUID HAPTIC_CHAR_UUID("00000002-1000-1000-8000-00805f9b34fb");
 static NimBLEUUID CCCD_UUID("00002902-0000-1000-8000-00805f9b34fb");
 
 static const uint8_t BTN_CLICK = 0x01;
@@ -146,6 +147,8 @@ struct ControllerSlot {
 
   NimBLEAddress address;
   bool hasAddress = false;
+
+  NimBLERemoteCharacteristic *hapticChar = nullptr;
 };
 
 // ─── Globals ────────────────────────────────────────────────────────────────
@@ -288,6 +291,36 @@ void ledIndicateBattery(int level) {
   delay(300);
   ledFlash(flashes, 200, 200);
   delay(300);
+}
+
+// ─── Haptic Feedback ────────────────────────────────────────────────────────
+// Writes to the Daydream controller's BLE vibration motor characteristic.
+// The write char (00000002-...) accepts single-byte commands.
+
+void hapticBuzz(int slotIdx, int durationMs) {
+  if (slotIdx < 0 || slotIdx >= MAX_CONTROLLERS)
+    return;
+  ControllerSlot &s = slots[slotIdx];
+  if (!s.connected || !s.hapticChar)
+    return;
+
+  try {
+    uint8_t on = 0x01;
+    uint8_t off = 0x00;
+    s.hapticChar->writeValue(&on, 1, false); // WriteNoResp
+    delay(durationMs);
+    s.hapticChar->writeValue(&off, 1, false);
+  } catch (...) {
+    // Silently ignore write failures (controller may have disconnected)
+  }
+}
+
+void hapticPattern(int slotIdx, int count, int onMs, int offMs) {
+  for (int i = 0; i < count; i++) {
+    hapticBuzz(slotIdx, onMs);
+    if (i < count - 1)
+      delay(offMs);
+  }
 }
 
 // ─── Boot Button ISR ────────────────────────────────────────────────────────
@@ -585,9 +618,25 @@ bool connectToController(int slotIdx) {
   }
 
   if (s.notificationsWorking) {
-    Serial.printf("[SLOT %d] ✓ Data stream active!\n", slotIdx);
+    Serial.printf("[SLOT %d] Data stream active!\n", slotIdx);
   } else {
-    Serial.printf("[SLOT %d] ✗ No data\n", slotIdx);
+    Serial.printf("[SLOT %d] No data\n", slotIdx);
+  }
+
+  // Discover haptic write characteristic
+  NimBLERemoteCharacteristic *hChar =
+      pService->getCharacteristic(HAPTIC_CHAR_UUID);
+  if (hChar && hChar->canWrite()) {
+    s.hapticChar = hChar;
+    Serial.printf("[SLOT %d] Haptic feedback available\n", slotIdx);
+  } else {
+    s.hapticChar = nullptr;
+    Serial.printf("[SLOT %d] No haptic characteristic found\n", slotIdx);
+  }
+
+  // Buzz on successful connection
+  if (s.notificationsWorking && s.hapticChar) {
+    hapticBuzz(slotIdx, 200);
   }
 
   return true;
@@ -790,6 +839,7 @@ void checkSensitivityCombo(ControllerSlot &s) {
                   airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
     savePreferences();
     ledIndicateSensitivity(true);
+    hapticBuzz(activeSlot, 30);
   } else if (s.current.homeBtn && s.current.volDownBtn && !s.current.appBtn &&
              !sensComboFired) {
     // Only Vol Down (without App) = sensitivity decrease
@@ -803,6 +853,7 @@ void checkSensitivityCombo(ControllerSlot &s) {
                   airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
     savePreferences();
     ledIndicateSensitivity(false);
+    hapticBuzz(activeSlot, 30);
   }
   if (!s.current.homeBtn) {
     sensComboFired = false;
@@ -850,6 +901,7 @@ void processButtons(ControllerSlot &s) {
     }
     Serial.printf("[MODE] %s\n", modeNames[currentMode]);
     ledIndicateMode(currentMode);
+    hapticBuzz(activeSlot, 50);
   }
 
   // ── Sensitivity combo ──
