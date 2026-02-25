@@ -149,4 +149,4 @@ docs/boards/
 
 ## Questions?
 
-Open an issue on [GitHub](https://github.com/Delulu-Delilah/daydream-airmouse/issues).
+Open an issue on [GitHub](https://github.com/Delulu-Delilah/d.a.m/issues).

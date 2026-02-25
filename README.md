@@ -35,7 +35,7 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 |----------|------|
 | 📹 Video Tutorial | *Coming soon* |
 | 🖨️ 3D Printable Case | Remix in progress (Based on [Snap-fit case](https://www.printables.com/model/1143379-snap-fit-case-for-seeed-studio-xiao-esp32s3/collections) & [Case with Antenna](https://www.printables.com/model/1445678-case-for-seeed-xiao-esp32s3-and-the-default-antenn)) |
-| ⚡ Web Flasher | [Flash from browser](https://delulu-delilah.github.io/daydream-airmouse/) |
+| ⚡ Web Flasher | [Flash from browser](https://delulu-delilah.github.io/d.a.m/) |
 | 📖 Add Your Board | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | 🛒 Hardware | [Buy XIAO ESP32-S3](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) |
 | 🧬 Inspiration | [Daydream JS](https://github.com/mrdoob/daydream-controller.js) |
@@ -59,7 +59,7 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 
 Flash directly from your browser — no downloads needed:
 
-### **👉 [Install Firmware](https://delulu-delilah.github.io/daydream-airmouse/)**
+### **👉 [Install Firmware](https://delulu-delilah.github.io/d.a.m/)**
 
 > Requires **Chrome** or **Edge** on desktop. Select your board, connect via USB, click Install.
 
@@ -68,7 +68,7 @@ Flash directly from your browser — no downloads needed:
 Requires [PlatformIO](https://platformio.org/):
 
 ```bash
-git clone https://github.com/Delulu-Delilah/daydream-airmouse.git
+git clone https://github.com/Delulu-Delilah/d.a.m.git
 cd daydream-airmouse
 
 # Build for XIAO ESP32-S3 (default)
