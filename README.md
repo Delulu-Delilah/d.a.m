@@ -1,4 +1,8 @@
-# 🎮 Daydream Air Mouse
+<div align="center">
+  <img src="docs/assets/logo.svg" alt="Daydream Air Mouse Logo" width="180">
+  <h1>Daydream Air Mouse</h1>
+</div>
+
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Board](https://img.shields.io/badge/board-ESP32--S3-orange)
