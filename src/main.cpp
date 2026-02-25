@@ -34,6 +34,30 @@
 #include <USBHIDConsumerControl.h>
 #include <USBHIDMouse.h>
 
+// ─── Board Selection ────────────────────────────────────────────────────────
+// Each board config defines: BOARD_NAME, BOARD_LED_PIN, BOARD_BOOT_PIN,
+// BOARD_LED_INVERTED. To add a new board, create a header in boards/ and
+// add a -DBOARD_xxx build flag in platformio.ini.
+
+#if defined(BOARD_XIAO_ESP32S3)
+#include "../boards/xiao_esp32s3.h"
+// ── Add new boards here ──
+// #elif defined(BOARD_ESP32S3_DEVKIT)
+//   #include "../boards/esp32s3_devkit.h"
+#else
+// Default: XIAO ESP32-S3
+#include "../boards/xiao_esp32s3.h"
+#endif
+
+// Resolve board config into internal constants
+static const int LED_PIN = BOARD_LED_PIN;
+static const int BOOT_BTN_PIN = BOARD_BOOT_PIN;
+static const bool LED_INVERT = BOARD_LED_INVERTED;
+
+// LED polarity helpers (active-low vs active-high)
+#define LED_ON() digitalWrite(LED_PIN, LED_INVERT ? LOW : HIGH)
+#define LED_OFF() digitalWrite(LED_PIN, LED_INVERT ? HIGH : LOW)
+
 // ─── Device Modes ───────────────────────────────────────────────────────────
 
 enum DeviceMode { MODE_AIR_MOUSE, MODE_TRACKPAD, MODE_MEDIA };
@@ -59,9 +83,6 @@ static const int RECONNECT_DELAY_MS = 3000;
 static const int DISCOVERY_INTERVAL_MS = 15000;
 static const unsigned long HOME_LONG_PRESS_MS = 1000;
 static const unsigned long AUTO_SLEEP_MS = 120000; // 2 min
-
-static const int LED_PIN = LED_BUILTIN;
-static const int BOOT_BTN_PIN = 0;
 
 // ─── Multi-Controller ───────────────────────────────────────────────────────
 
@@ -143,8 +164,13 @@ static volatile bool bootBtnPressed = false;
 static unsigned long lastBootBtnTime = 0;
 
 // LED state machine
-enum LEDState { LED_OFF, LED_BREATHING, LED_SOLID, LED_FLASH_PATTERN };
-static LEDState ledState = LED_OFF;
+enum LEDState {
+  LED_STATE_OFF,
+  LED_STATE_BREATHING,
+  LED_STATE_SOLID,
+  LED_STATE_FLASH
+};
+static LEDState ledState = LED_STATE_OFF;
 static unsigned long ledLastUpdate = 0;
 static float ledBreathPhase = 0;
 
@@ -178,16 +204,16 @@ void savePreferences() {
 
 void ledFlash(int count, int onMs = 100, int offMs = 100) {
   for (int i = 0; i < count; i++) {
-    digitalWrite(LED_PIN, LOW);
+    LED_ON();
     delay(onMs);
-    digitalWrite(LED_PIN, HIGH);
+    LED_OFF();
     delay(offMs);
   }
 }
 
 // Non-blocking breathing LED (call from loop)
 void ledUpdateBreathing() {
-  if (ledState != LED_BREATHING)
+  if (ledState != LED_STATE_BREATHING)
     return;
   unsigned long now = millis();
   if (now - ledLastUpdate < 16)
@@ -201,22 +227,22 @@ void ledUpdateBreathing() {
   // Sine wave breathing: 0→255→0
   float brightness = (sinf(ledBreathPhase) + 1.0f) * 0.5f;
   int pwm = (int)(brightness * 255.0f);
-  analogWrite(LED_PIN, 255 - pwm); // LED is active LOW
+  analogWrite(LED_PIN, LED_INVERT ? (255 - pwm) : pwm);
 }
 
 void ledSetBreathing() {
-  ledState = LED_BREATHING;
+  ledState = LED_STATE_BREATHING;
   ledBreathPhase = 0;
 }
 
 void ledSetSolid() {
-  ledState = LED_SOLID;
-  digitalWrite(LED_PIN, LOW); // ON (active low)
+  ledState = LED_STATE_SOLID;
+  LED_ON();
 }
 
 void ledSetOff() {
-  ledState = LED_OFF;
-  digitalWrite(LED_PIN, HIGH); // OFF
+  ledState = LED_STATE_OFF;
+  LED_OFF();
 }
 
 void ledIndicateMode(DeviceMode mode) {

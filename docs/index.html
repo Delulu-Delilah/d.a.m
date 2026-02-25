@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,11 @@
   <meta name="description" content="Flash the Daydream Air Mouse firmware to your ESP32-S3 directly from the browser.">
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -22,16 +27,19 @@
     }
 
     .card {
-      max-width: 520px;
+      max-width: 540px;
       width: 100%;
       background: linear-gradient(145deg, #18181b, #1e1e24);
       border: 1px solid #27272a;
       border-radius: 20px;
       padding: 2.5rem;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     }
 
-    .emoji-hero { font-size: 3rem; margin-bottom: 1rem; }
+    .emoji-hero {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
 
     h1 {
       font-size: 1.75rem;
@@ -51,7 +59,7 @@
 
     .steps {
       list-style: none;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
 
     .steps li {
@@ -65,7 +73,8 @@
 
     .step-num {
       flex-shrink: 0;
-      width: 28px; height: 28px;
+      width: 28px;
+      height: 28px;
       background: #2563eb;
       color: white;
       border-radius: 50%;
@@ -76,15 +85,67 @@
       font-weight: 600;
     }
 
+    /* ── Board selector ── */
+    .board-selector {
+      margin-bottom: 1.5rem;
+    }
+
+    .board-selector label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #a1a1aa;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .board-selector select {
+      width: 100%;
+      padding: 10px 14px;
+      background: #0f0f14;
+      color: #e4e4e7;
+      border: 1px solid #3f3f46;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg fill='%2371717a' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      transition: border-color 0.15s;
+    }
+
+    .board-selector select:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+
+    .community-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: #71717a;
+      cursor: pointer;
+    }
+
+    .community-toggle input[type="checkbox"] {
+      accent-color: #7c3aed;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    /* ── Install button ── */
     .install-wrapper {
       display: flex;
       justify-content: center;
       margin-bottom: 1.5rem;
-    }
-
-    esp-web-install-button {
-      --esp-tools-button-color: #2563eb;
-      --esp-tools-button-text-color: #fff;
     }
 
     esp-web-install-button button {
@@ -115,7 +176,9 @@
       line-height: 1.5;
     }
 
-    .note strong { color: #e4e4e7; }
+    .note strong {
+      color: #e4e4e7;
+    }
 
     .footer {
       margin-top: 2rem;
@@ -129,7 +192,9 @@
       text-decoration: none;
     }
 
-    .footer a:hover { text-decoration: underline; }
+    .footer a:hover {
+      text-decoration: underline;
+    }
 
     .unsupported {
       display: none;
@@ -143,12 +208,26 @@
       margin-bottom: 1.5rem;
     }
 
+    .no-community {
+      text-align: center;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      color: #52525b;
+      font-style: italic;
+    }
+
     @media (max-width: 480px) {
-      .card { padding: 1.5rem; }
-      h1 { font-size: 1.4rem; }
+      .card {
+        padding: 1.5rem;
+      }
+
+      h1 {
+        font-size: 1.4rem;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="card">
     <div class="emoji-hero">🎮</div>
@@ -161,24 +240,42 @@
     <ol class="steps">
       <li>
         <span class="step-num">1</span>
-        <span>Connect your <strong>XIAO ESP32-S3</strong> to your computer via USB</span>
+        <span>Connect your ESP32-S3 board to your computer via USB</span>
       </li>
       <li>
         <span class="step-num">2</span>
-        <span>Click the install button below and select the serial port</span>
+        <span>Select your board below, then click <strong>Install Firmware</strong></span>
       </li>
       <li>
         <span class="step-num">3</span>
-        <span>Wait for the flash to complete, then pair your Daydream controller</span>
+        <span>Select the serial port, wait for the flash, then pair your Daydream controller</span>
       </li>
     </ol>
 
+    <!-- Board selector -->
+    <div class="board-selector">
+      <label for="board-select">Select Board</label>
+      <select id="board-select">
+        <optgroup label="Official">
+          <option value="boards/xiao_esp32s3/manifest.json" selected>
+            Seeed XIAO ESP32-S3
+          </option>
+        </optgroup>
+        <!-- Community boards will be inserted here -->
+      </select>
+      <label class="community-toggle">
+        <input type="checkbox" id="show-community">
+        Show community-submitted boards
+      </label>
+    </div>
+
     <div id="unsupported" class="unsupported">
-      ⚠️ Web Serial is not supported in this browser. Please use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong>.
+      ⚠️ Web Serial is not supported in this browser. Please use <strong>Google Chrome</strong> or <strong>Microsoft
+        Edge</strong>.
     </div>
 
     <div class="install-wrapper">
-      <esp-web-install-button manifest="manifest.json">
+      <esp-web-install-button id="install-btn" manifest="boards/xiao_esp32s3/manifest.json">
         <button slot="activate">⚡ Install Firmware</button>
         <span slot="unsupported" id="unsupported-slot"></span>
         <span slot="not-allowed" id="not-allowed-slot"></span>
@@ -194,13 +291,59 @@
 
   <div class="footer">
     <a href="https://github.com/Delulu-Delilah/daydream-airmouse">View on GitHub</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/Delulu-Delilah/daydream-airmouse/blob/main/CONTRIBUTING.md">Add Your Board</a>
     &nbsp;·&nbsp; MIT License
   </div>
 
   <script>
+    // ─── Board selector logic ─────────────────────────────────────────
+
+    // Community boards registry — contributors add entries here via PR
+    const communityBoards = [
+      // { name: "ESP32-S3 DevKitC-1", manifest: "boards/esp32s3_devkit/manifest.json" },
+    ];
+
+    const boardSelect = document.getElementById('board-select');
+    const installBtn = document.getElementById('install-btn');
+    const showCommunity = document.getElementById('show-community');
+
+    // Update manifest when board changes
+    boardSelect.addEventListener('change', () => {
+      installBtn.setAttribute('manifest', boardSelect.value);
+    });
+
+    // Toggle community boards
+    showCommunity.addEventListener('change', () => {
+      const existing = boardSelect.querySelector('optgroup[label="Community"]');
+      if (existing) existing.remove();
+
+      if (showCommunity.checked && communityBoards.length > 0) {
+        const group = document.createElement('optgroup');
+        group.label = 'Community';
+        communityBoards.forEach(board => {
+          const opt = document.createElement('option');
+          opt.value = board.manifest;
+          opt.textContent = board.name;
+          group.appendChild(opt);
+        });
+        boardSelect.appendChild(group);
+      } else if (showCommunity.checked && communityBoards.length === 0) {
+        const group = document.createElement('optgroup');
+        group.label = 'Community';
+        const opt = document.createElement('option');
+        opt.disabled = true;
+        opt.textContent = 'No community boards yet — be the first!';
+        group.appendChild(opt);
+        boardSelect.appendChild(group);
+      }
+    });
+
+    // Browser check
     if (!("serial" in navigator)) {
       document.getElementById("unsupported").style.display = "block";
     }
   </script>
 </body>
+
 </html>
