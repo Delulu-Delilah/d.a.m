@@ -660,7 +660,7 @@ void processAirMouse(ControllerSlot &s) {
   }
 
   float deltaYaw = s.current.yOri - s.previous.yOri;
-  float deltaPitch = s.current.zOri - s.previous.zOri;
+  float deltaPitch = s.current.xOri - s.previous.xOri;
 
   if (fabsf(deltaYaw) > 1.0f)
     deltaYaw = 0;
