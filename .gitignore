@@ -1,0 +1,24 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Flasher build artifacts
+flasher/venv/
+flasher/build/
+flasher/dist/
+flasher/__pycache__/
+flasher/*.spec
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
