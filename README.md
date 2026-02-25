@@ -36,6 +36,8 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 | 🖨️ 3D Printable Case | *Coming soon — Printables* |
 | ⚡ Web Flasher | [Flash from browser](https://delulu-delilah.github.io/daydream-airmouse/) |
 | 📖 Add Your Board | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| 🛒 Hardware | [Buy XIAO ESP32-S3](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) |
+| 🧬 Inspiration | [Daydream JS](https://github.com/mrdoob/daydream-controller.js) |
 
 ## Supported Boards
 
