@@ -582,9 +582,19 @@
             // Controllers
             const c0 = document.getElementById('c0-status');
             const c1 = document.getElementById('c1-status');
-            c0.textContent = data.c0 ? 'Connected' : 'Disconnected';
+
+            let c0Text = data.c0 ? 'Connected' : 'Disconnected';
+            if (data.c0 && data.c0_bat !== undefined && data.c0_bat >= 0) {
+                c0Text += ` (${data.c0_bat}%)`;
+            }
+            c0.textContent = c0Text;
             c0.className = 'status-item-value ' + (data.c0 ? 'online' : 'offline');
-            c1.textContent = data.c1 ? 'Connected' : 'Disconnected';
+
+            let c1Text = data.c1 ? 'Connected' : 'Disconnected';
+            if (data.c1 && data.c1_bat !== undefined && data.c1_bat >= 0) {
+                c1Text += ` (${data.c1_bat}%)`;
+            }
+            c1.textContent = c1Text;
             c1.className = 'status-item-value ' + (data.c1 ? 'online' : 'offline');
 
             // Active slot

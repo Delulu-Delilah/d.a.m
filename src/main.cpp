@@ -27,6 +27,7 @@
  * BLE bonding + explicit CCCD descriptor writes.
  */
 
+#include "USBHIDBattery.h"
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 #include <Preferences.h>
@@ -92,8 +93,10 @@ static const int MAX_CONTROLLERS = 2;
 
 static NimBLEUUID SERVICE_UUID("0000fe55-0000-1000-8000-00805f9b34fb");
 static NimBLEUUID CHAR_UUID("00000001-1000-1000-8000-00805f9b34fb");
-static NimBLEUUID HAPTIC_CHAR_UUID("00000002-1000-1000-8000-00805f9b34fb");
 static NimBLEUUID CCCD_UUID("00002902-0000-1000-8000-00805f9b34fb");
+
+static NimBLEUUID BATTERY_SERVICE_UUID((uint16_t)0x180f);
+static NimBLEUUID BATTERY_CHAR_UUID((uint16_t)0x2a19);
 
 static const uint8_t BTN_CLICK = 0x01;
 static const uint8_t BTN_HOME = 0x02;
@@ -148,13 +151,14 @@ struct ControllerSlot {
   NimBLEAddress address;
   bool hasAddress = false;
 
-  NimBLERemoteCharacteristic *hapticChar = nullptr;
+  int batteryLevel = -1; // -1 means unknown
 };
 
 // ─── Globals ────────────────────────────────────────────────────────────────
 
 USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
+USBHIDBattery BatteryReport;
 Preferences prefs;
 
 static ControllerSlot slots[MAX_CONTROLLERS];
@@ -293,36 +297,6 @@ void ledIndicateBattery(int level) {
   delay(300);
 }
 
-// ─── Haptic Feedback ────────────────────────────────────────────────────────
-// Writes to the Daydream controller's BLE vibration motor characteristic.
-// The write char (00000002-...) accepts single-byte commands.
-
-void hapticBuzz(int slotIdx, int durationMs) {
-  if (slotIdx < 0 || slotIdx >= MAX_CONTROLLERS)
-    return;
-  ControllerSlot &s = slots[slotIdx];
-  if (!s.connected || !s.hapticChar)
-    return;
-
-  try {
-    uint8_t on = 0x01;
-    uint8_t off = 0x00;
-    s.hapticChar->writeValue(&on, 1, false); // WriteNoResp
-    delay(durationMs);
-    s.hapticChar->writeValue(&off, 1, false);
-  } catch (...) {
-    // Silently ignore write failures (controller may have disconnected)
-  }
-}
-
-void hapticPattern(int slotIdx, int count, int onMs, int offMs) {
-  for (int i = 0; i < count; i++) {
-    hapticBuzz(slotIdx, onMs);
-    if (i < count - 1)
-      delay(offMs);
-  }
-}
-
 // ─── Boot Button ISR ────────────────────────────────────────────────────────
 
 void IRAM_ATTR bootBtnISR() { bootBtnPressed = true; }
@@ -386,40 +360,38 @@ void parsePacket(const uint8_t *data, size_t len, DaydreamState &state) {
 
 // ─── BLE Notification Callbacks ─────────────────────────────────────────────
 
-void notifyCallbackSlot0(NimBLERemoteCharacteristic *pChar, uint8_t *data,
-                         size_t length, bool isNotify) {
-  ControllerSlot &s = slots[0];
+void updateBatteryReport(int slotIdx) {
+  if (slotIdx == activeSlot && slots[slotIdx].batteryLevel >= 0) {
+    BatteryReport.setBatteryLevel((uint8_t)slots[slotIdx].batteryLevel);
+  }
+}
+
+static void notifyCallback(NimBLERemoteCharacteristic *pChar, uint8_t *pData,
+                           size_t length, bool isNotify, int slotIdx) {
+  ControllerSlot &s = slots[slotIdx];
   if (length >= 20) {
     s.previous = s.current;
-    parsePacket(data, length, s.current);
+    parsePacket(pData, length, s.current);
     s.stateUpdated = true;
     s.lastNotifyTime = millis();
     s.notifyCount++;
     lastControllerActivity = millis();
     if (!s.notificationsWorking) {
       s.notificationsWorking = true;
-      Serial.printf("[SLOT 0] ✓ First packet (%lu ms)\n",
+      Serial.printf("[SLOT %d] ✓ First packet (%lu ms)\n", slotIdx,
                     millis() - s.connectTime);
     }
   }
 }
 
+void notifyCallbackSlot0(NimBLERemoteCharacteristic *pChar, uint8_t *data,
+                         size_t length, bool isNotify) {
+  notifyCallback(pChar, data, length, isNotify, 0);
+}
+
 void notifyCallbackSlot1(NimBLERemoteCharacteristic *pChar, uint8_t *data,
                          size_t length, bool isNotify) {
-  ControllerSlot &s = slots[1];
-  if (length >= 20) {
-    s.previous = s.current;
-    parsePacket(data, length, s.current);
-    s.stateUpdated = true;
-    s.lastNotifyTime = millis();
-    s.notifyCount++;
-    lastControllerActivity = millis();
-    if (!s.notificationsWorking) {
-      s.notificationsWorking = true;
-      Serial.printf("[SLOT 1] ✓ First packet (%lu ms)\n",
-                    millis() - s.connectTime);
-    }
-  }
+  notifyCallback(pChar, data, length, isNotify, 1);
 }
 
 typedef void (*NotifyCallback)(NimBLERemoteCharacteristic *, uint8_t *, size_t,
@@ -427,7 +399,31 @@ typedef void (*NotifyCallback)(NimBLERemoteCharacteristic *, uint8_t *, size_t,
 static NotifyCallback slotCallbacks[MAX_CONTROLLERS] = {notifyCallbackSlot0,
                                                         notifyCallbackSlot1};
 
-// ─── BLE Client Callbacks ───────────────────────────────────────────────────
+static void batteryNotifyCallback(NimBLERemoteCharacteristic *pChar,
+                                  uint8_t *pData, size_t length, bool isNotify,
+                                  int slotIdx) {
+  if (slotIdx < 0 || slotIdx >= MAX_CONTROLLERS)
+    return;
+  if (length > 0) {
+    slots[slotIdx].batteryLevel = pData[0];
+    updateBatteryReport(slotIdx);
+  }
+}
+
+void batteryNotifyCallbackSlot0(NimBLERemoteCharacteristic *pChar,
+                                uint8_t *data, size_t length, bool isNotify) {
+  batteryNotifyCallback(pChar, data, length, isNotify, 0);
+}
+
+void batteryNotifyCallbackSlot1(NimBLERemoteCharacteristic *pChar,
+                                uint8_t *data, size_t length, bool isNotify) {
+  batteryNotifyCallback(pChar, data, length, isNotify, 1);
+}
+
+static NotifyCallback batteryCallbacks[MAX_CONTROLLERS] = {
+    batteryNotifyCallbackSlot0, batteryNotifyCallbackSlot1};
+
+// ─── BLE Client Callbacks ─────────────────────────────────────────────
 
 class ClientCallbacks : public NimBLEClientCallbacks {
 public:
@@ -623,20 +619,20 @@ bool connectToController(int slotIdx) {
     Serial.printf("[SLOT %d] No data\n", slotIdx);
   }
 
-  // Discover haptic write characteristic
-  NimBLERemoteCharacteristic *hChar =
-      pService->getCharacteristic(HAPTIC_CHAR_UUID);
-  if (hChar && hChar->canWrite()) {
-    s.hapticChar = hChar;
-    Serial.printf("[SLOT %d] Haptic feedback available\n", slotIdx);
+  // Discover Battery Service (0x180f) and subscribe to fix LED flashing
+  NimBLERemoteService *pBatService = s.client->getService(BATTERY_SERVICE_UUID);
+  if (pBatService) {
+    NimBLERemoteCharacteristic *pBatChar =
+        pBatService->getCharacteristic(BATTERY_CHAR_UUID);
+    if (pBatChar && pBatChar->canNotify()) {
+      pBatChar->subscribe(true, batteryCallbacks[slotIdx], false);
+      Serial.printf("[SLOT %d] Subscribed to battery notifications\n", slotIdx);
+    } else {
+      Serial.printf("[SLOT %d] Battery char missing or cannot notify\n",
+                    slotIdx);
+    }
   } else {
-    s.hapticChar = nullptr;
-    Serial.printf("[SLOT %d] No haptic characteristic found\n", slotIdx);
-  }
-
-  // Buzz on successful connection
-  if (s.notificationsWorking && s.hapticChar) {
-    hapticBuzz(slotIdx, 200);
+    Serial.printf("[SLOT %d] Battery service not found\n", slotIdx);
   }
 
   return true;
@@ -839,7 +835,6 @@ void checkSensitivityCombo(ControllerSlot &s) {
                   airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
     savePreferences();
     ledIndicateSensitivity(true);
-    hapticBuzz(activeSlot, 30);
   } else if (s.current.homeBtn && s.current.volDownBtn && !s.current.appBtn &&
              !sensComboFired) {
     // Only Vol Down (without App) = sensitivity decrease
@@ -853,7 +848,6 @@ void checkSensitivityCombo(ControllerSlot &s) {
                   airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
     savePreferences();
     ledIndicateSensitivity(false);
-    hapticBuzz(activeSlot, 30);
   }
   if (!s.current.homeBtn) {
     sensComboFired = false;
@@ -901,7 +895,6 @@ void processButtons(ControllerSlot &s) {
     }
     Serial.printf("[MODE] %s\n", modeNames[currentMode]);
     ledIndicateMode(currentMode);
-    hapticBuzz(activeSlot, 50);
   }
 
   // ── Sensitivity combo ──
@@ -992,10 +985,11 @@ void sendConfig() {
 void sendStatus() {
   Serial.printf(
       ">{\"type\":\"status\",\"mode\":%d,\"modeName\":\"%s\",\"slot\":%d,"
-      "\"c0\":%s,\"c1\":%s,\"sleep\":%s}\n",
+      "\"c0\":%s,\"c1\":%s,\"sleep\":%s,\"c0_bat\":%d,\"c1_bat\":%d}\n",
       (int)currentMode, modeNames[currentMode], activeSlot,
       slots[0].connected ? "true" : "false",
-      slots[1].connected ? "true" : "false", sleepMode ? "true" : "false");
+      slots[1].connected ? "true" : "false", sleepMode ? "true" : "false",
+      slots[0].batteryLevel, slots[1].batteryLevel);
 }
 
 void processSerialLine(const char *line) {
@@ -1043,6 +1037,11 @@ void processSerialCommands() {
       serialBuf[serialBufPos++] = c;
     }
   }
+
+  // Active slot changed: update battery report
+  if (currentMode != activeSlot) {
+    updateBatteryReport(activeSlot);
+  }
 }
 
 // ─── Setup ──────────────────────────────────────────────────────────────────
@@ -1070,8 +1069,8 @@ void setup() {
   // USB HID
   Mouse.begin();
   ConsumerControl.begin();
+  BatteryReport.begin();
   USB.begin();
-  Serial.println("[USB] HID ready");
 
   // BLE
   NimBLEDevice::init("DaydreamAirMouse");
