@@ -8,6 +8,18 @@
   <meta name="description" content="Flash the Daydream Air Mouse firmware to your ESP32-S3 directly from the browser.">
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
   <style>
+    :root {
+      --bg-dark: #020617;
+      --bg-mid: #0F172A;
+      --bg-light: #1E293B;
+      --accent-cyan: #38BDF8;
+      --accent-blue: #0EA5E9;
+      --text-main: #FFFFFF;
+      --text-muted: #94A3B8;
+      --card-bg: rgba(15, 23, 42, 0.6);
+      --card-border: rgba(56, 189, 248, 0.2);
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -15,127 +27,200 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0f;
-      color: #e4e4e7;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top center, var(--bg-light) 0%, var(--bg-mid) 40%, var(--bg-dark) 100%);
+      color: var(--text-main);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 2rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background glows matching the banner */
+    body::before,
+    body::after {
+      content: '';
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      filter: blur(100px);
+      z-index: -1;
+      opacity: 0.15;
+    }
+
+    body::before {
+      background: var(--accent-cyan);
+      top: -10%;
+      right: -10%;
+    }
+
+    body::after {
+      background: #818CF8;
+      bottom: -10%;
+      left: -10%;
+    }
+
+    .container {
+      max-width: 560px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1;
+    }
+
+    .hero-image {
+      margin-bottom: 2rem;
+      filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.5));
+    }
+
+    .hero-image img {
+      width: 140px;
+      height: auto;
     }
 
     .card {
-      max-width: 540px;
       width: 100%;
-      background: linear-gradient(145deg, #18181b, #1e1e24);
-      border: 1px solid #27272a;
-      border-radius: 20px;
-      padding: 2.5rem;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 3rem;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
 
-    .emoji-hero {
-      font-size: 3rem;
-      margin-bottom: 1rem;
+    .text-center {
+      text-align: center;
+    }
+
+    .tech-tag {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
     }
 
     h1 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      font-size: 2.75rem;
+      font-weight: 900;
+      margin-bottom: 1rem;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      background: linear-gradient(180deg, #FFFFFF 0%, #BAE6FD 100%);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .subtitle {
-      color: #71717a;
-      font-size: 0.95rem;
-      margin-bottom: 2rem;
-      line-height: 1.5;
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+      font-weight: 500;
     }
 
     .steps {
       list-style: none;
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .steps li {
       display: flex;
       align-items: flex-start;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
       font-size: 0.95rem;
       line-height: 1.5;
+      color: #E2E8F0;
+    }
+
+    .steps li:last-child {
+      margin-bottom: 0;
     }
 
     .step-num {
       flex-shrink: 0;
-      width: 28px;
-      height: 28px;
-      background: #2563eb;
+      width: 26px;
+      height: 26px;
+      background: var(--accent-blue);
       color: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 0.8rem;
-      font-weight: 600;
+      font-weight: 800;
+      box-shadow: 0 0 12px rgba(14, 165, 233, 0.5);
     }
 
     /* ── Board selector ── */
     .board-selector {
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
     }
 
     .board-selector label {
       display: block;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #a1a1aa;
+      color: var(--text-muted);
       margin-bottom: 0.5rem;
-      text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
     .board-selector select {
       width: 100%;
-      padding: 10px 14px;
-      background: #0f0f14;
-      color: #e4e4e7;
-      border: 1px solid #3f3f46;
-      border-radius: 10px;
-      font-size: 0.95rem;
+      padding: 14px 18px;
+      background: rgba(2, 6, 23, 0.8);
+      color: var(--text-main);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 500;
       font-family: inherit;
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg fill='%2371717a' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg fill='%2338BDF8' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 12px center;
-      background-size: 16px;
-      transition: border-color 0.15s;
+      background-position: right 16px center;
+      background-size: 20px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 
     .board-selector select:focus {
       outline: none;
-      border-color: #2563eb;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
     }
 
     .community-toggle {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.5rem;
-      margin-top: 0.75rem;
+      margin-top: 1rem;
       font-size: 0.85rem;
-      color: #71717a;
+      color: var(--text-muted);
       cursor: pointer;
+      font-weight: 500;
     }
 
     .community-toggle input[type="checkbox"] {
-      accent-color: #7c3aed;
+      accent-color: var(--accent-cyan);
       width: 16px;
       height: 16px;
       cursor: pointer;
@@ -145,155 +230,170 @@
     .install-wrapper {
       display: flex;
       justify-content: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
     }
 
     esp-web-install-button button {
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
-      color: white;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      color: #020617;
+      /* Very dark text on bright button */
       border: none;
-      padding: 14px 40px;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      font-weight: 600;
+      padding: 16px 48px;
+      border-radius: 16px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
       cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.15s;
-      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 24px rgba(56, 189, 248, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
     }
 
     esp-web-install-button button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 28px rgba(37, 99, 235, 0.45);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 12px 32px rgba(56, 189, 248, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    esp-web-install-button button:active {
+      transform: translateY(1px);
     }
 
     .note {
-      background: #1c1c22;
-      border: 1px solid #27272a;
-      border-radius: 10px;
-      padding: 1rem;
+      background: rgba(51, 65, 85, 0.4);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 12px;
+      padding: 1.25rem;
       font-size: 0.85rem;
-      color: #a1a1aa;
-      line-height: 1.5;
+      color: var(--text-muted);
+      line-height: 1.6;
+      text-align: center;
     }
 
     .note strong {
-      color: #e4e4e7;
+      color: var(--text-main);
     }
 
     .footer {
-      margin-top: 2rem;
+      margin-top: 3rem;
       text-align: center;
       font-size: 0.85rem;
-      color: #52525b;
+      color: #64748B;
+      font-weight: 500;
     }
 
     .footer a {
-      color: #60a5fa;
+      color: var(--accent-cyan);
       text-decoration: none;
+      transition: color 0.2s;
     }
 
     .footer a:hover {
+      color: #FFFFFF;
       text-decoration: underline;
     }
 
     .unsupported {
       display: none;
       text-align: center;
-      padding: 1rem;
-      background: #2d1b1b;
-      border: 1px solid #7f1d1d;
-      border-radius: 10px;
-      color: #fca5a5;
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
+      padding: 1.25rem;
+      background: rgba(220, 38, 38, 0.1);
+      border: 1px solid rgba(220, 38, 38, 0.3);
+      border-radius: 12px;
+      color: #FCA5A5;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
     }
 
-    .no-community {
-      text-align: center;
-      padding: 0.75rem;
-      font-size: 0.85rem;
-      color: #52525b;
-      font-style: italic;
-    }
-
-    @media (max-width: 480px) {
+    @media (max-width: 600px) {
       .card {
-        padding: 1.5rem;
+        padding: 2rem 1.5rem;
+        border-radius: 20px;
       }
 
       h1 {
-        font-size: 1.4rem;
+        font-size: 2.25rem;
+      }
+
+      esp-web-install-button button {
+        width: 100%;
+        padding: 16px 24px;
       }
     }
   </style>
 </head>
 
 <body>
-  <div class="card">
-    <div class="emoji-hero">🎮</div>
-    <h1>Daydream Air Mouse</h1>
-    <p class="subtitle">
-      Turn a Google Daydream controller into a wireless USB air mouse
-      and media remote using an ESP32-S3.
-    </p>
-
-    <ol class="steps">
-      <li>
-        <span class="step-num">1</span>
-        <span>Connect your ESP32-S3 board to your computer via USB</span>
-      </li>
-      <li>
-        <span class="step-num">2</span>
-        <span>Select your board below, then click <strong>Install Firmware</strong></span>
-      </li>
-      <li>
-        <span class="step-num">3</span>
-        <span>Select the serial port, wait for the flash, then pair your Daydream controller</span>
-      </li>
-    </ol>
-
-    <!-- Board selector -->
-    <div class="board-selector">
-      <label for="board-select">Select Board</label>
-      <select id="board-select">
-        <optgroup label="Official">
-          <option value="boards/xiao_esp32s3/manifest.json" selected>
-            Seeed XIAO ESP32-S3
-          </option>
-        </optgroup>
-        <!-- Community boards will be inserted here -->
-      </select>
-      <label class="community-toggle">
-        <input type="checkbox" id="show-community">
-        Show community-submitted boards
-      </label>
+  <div class="container">
+    <div class="hero-image">
+      <img src="assets/logo.svg" alt="Daydream Air Mouse Logo">
     </div>
 
-    <div id="unsupported" class="unsupported">
-      ⚠️ Web Serial is not supported in this browser. Please use <strong>Google Chrome</strong> or <strong>Microsoft
-        Edge</strong>.
+    <div class="card">
+      <div class="text-center">
+        <div class="tech-tag">Open Source Firmware</div>
+        <h1>Daydream Air Mouse</h1>
+        <p class="subtitle">
+          Turn a Google Daydream controller into a wireless USB presentation mouse using an ESP32-S3.
+        </p>
+      </div>
+
+      <ol class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <span>Connect your ESP32-S3 board to your computer via USB.</span>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <span>Select your board below, then click <strong>Install Firmware</strong>.</span>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <span>Select the serial port, wait for the flash, then pair your Daydream controller!</span>
+        </li>
+      </ol>
+
+      <!-- Board selector -->
+      <div class="board-selector">
+        <label for="board-select">Select Hardware</label>
+        <select id="board-select">
+          <optgroup label="Official">
+            <option value="boards/xiao_esp32s3/manifest.json" selected>
+              Seeed XIAO ESP32-S3
+            </option>
+          </optgroup>
+          <!-- Community boards will be inserted here -->
+        </select>
+        <label class="community-toggle">
+          <input type="checkbox" id="show-community">
+          Show community-submitted boards
+        </label>
+      </div>
+
+      <div id="unsupported" class="unsupported">
+        ⚠️ Web Serial is not supported in this browser.<br>Please use <strong>Google Chrome</strong> or
+        <strong>Microsoft
+          Edge</strong> on desktop.
+      </div>
+
+      <div class="install-wrapper">
+        <esp-web-install-button id="install-btn" manifest="boards/xiao_esp32s3/manifest.json">
+          <button slot="activate">⚡ Install Firmware</button>
+          <span slot="unsupported" id="unsupported-slot"></span>
+          <span slot="not-allowed" id="not-allowed-slot"></span>
+        </esp-web-install-button>
+      </div>
+
+      <div class="note">
+        <strong>Tip:</strong> If the board isn't detected, try holding the
+        <strong>BOOT</strong> button while plugging in the USB cable.
+      </div>
     </div>
 
-    <div class="install-wrapper">
-      <esp-web-install-button id="install-btn" manifest="boards/xiao_esp32s3/manifest.json">
-        <button slot="activate">⚡ Install Firmware</button>
-        <span slot="unsupported" id="unsupported-slot"></span>
-        <span slot="not-allowed" id="not-allowed-slot"></span>
-      </esp-web-install-button>
+    <div class="footer">
+      <a href="https://github.com/Delulu-Delilah/daydream-airmouse">View on GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/Delulu-Delilah/daydream-airmouse/blob/main/CONTRIBUTING.md">Add Your Board</a>
+      &nbsp;·&nbsp; MIT License
     </div>
-
-    <div class="note">
-      <strong>Tip:</strong> If the board isn't detected, try holding the
-      <strong>BOOT</strong> button while plugging in the USB cable.
-      Works with <strong>Chrome</strong> and <strong>Edge</strong> on desktop.
-    </div>
-  </div>
-
-  <div class="footer">
-    <a href="https://github.com/Delulu-Delilah/daydream-airmouse">View on GitHub</a>
-    &nbsp;·&nbsp;
-    <a href="https://github.com/Delulu-Delilah/daydream-airmouse/blob/main/CONTRIBUTING.md">Add Your Board</a>
-    &nbsp;·&nbsp; MIT License
   </div>
 
   <script>
