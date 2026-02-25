@@ -1,0 +1,49 @@
+name: 🎯 New Board Submission
+description: Submit a new ESP32-S3 board port
+labels: ["new-board"]
+body:
+  - type: input
+    id: board-name
+    attributes:
+      label: Board name
+      placeholder: e.g. ESP32-S3 DevKitC-1
+    validations:
+      required: true
+  - type: input
+    id: board-link
+    attributes:
+      label: Purchase link
+      placeholder: https://...
+  - type: dropdown
+    id: tested
+    attributes:
+      label: Testing status
+      options:
+        - Fully tested and working
+        - Partially tested
+        - Untested (compiles only)
+    validations:
+      required: true
+  - type: textarea
+    id: pin-config
+    attributes:
+      label: Pin configuration
+      description: Paste your board config header contents
+      render: c
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      placeholder: Any quirks, wiring differences, or special setup required
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: PR Checklist
+      options:
+        - label: Board config header in `boards/`
+        - label: PlatformIO env in `platformio.ini`
+        - label: "`#elif` added to `main.cpp`"
+        - label: Pre-built firmware in `docs/boards/<name>/`
+        - label: Manifest JSON in `docs/boards/<name>/`

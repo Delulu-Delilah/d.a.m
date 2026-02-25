@@ -1,8 +1,16 @@
 # 🎮 Daydream Air Mouse
 
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Board](https://img.shields.io/badge/board-ESP32--S3-orange)
+![Version](https://img.shields.io/badge/version-1.0-green)
+![Web Flash](https://img.shields.io/badge/flash-from%20browser-blueviolet)
+
 Turn a Google Daydream controller into a wireless USB air mouse and media remote — no phone, no headset, no Google apps needed.
 
 Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Daydream controller over Bluetooth and presents itself as a standard USB HID mouse + media controller to any computer.
+
+<!-- TODO: Add demo GIF/video here once available -->
+<!-- ![Demo](docs/assets/demo.gif) -->
 
 ## Features
 
@@ -15,6 +23,15 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 - **Smart LED feedback** — breathing while scanning, solid when connected, off when sleeping
 - **Auto-sleep** — stops scanning after 2 min, Boot button to wake
 - **Multi-board support** — bring your own ESP32-S3 board ([add yours!](CONTRIBUTING.md))
+
+## Resources
+
+| Resource | Link |
+|----------|------|
+| 📹 Video Tutorial | *Coming soon* |
+| 🖨️ 3D Printable Case | *Coming soon — Printables* |
+| ⚡ Web Flasher | [Flash from browser](https://delulu-delilah.github.io/daydream-airmouse/) |
+| 📖 Add Your Board | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## Supported Boards
 
@@ -83,6 +100,48 @@ platformio run -e xiao_esp32s3 --target upload
 | 💨 Breathing | Scanning for controllers |
 | 🔵 Solid | Connected |
 | ⚫ Off | Sleeping (press Boot to wake) |
+
+## Troubleshooting
+
+<details>
+<summary><strong>Controller won't connect</strong></summary>
+
+1. **Reset the controller** — hold the Home button for **20+ seconds** until the LED blinks, then release. This clears old BLE bonds.
+2. **Power cycle the ESP32** — unplug and re-plug the USB cable.
+3. **Check battery** — the Daydream controller's LED should turn on when you press Home. If not, charge it via USB-C.
+4. The ESP32 LED should be **breathing** (scanning). If it's off, press the Boot button to wake it.
+
+</details>
+
+<details>
+<summary><strong>Board not detected by web flasher</strong></summary>
+
+1. Use **Google Chrome** or **Microsoft Edge** (Safari/Firefox don't support Web Serial).
+2. Try holding the **BOOT** button on the ESP32 while plugging in the USB cable — this forces download mode.
+3. Make sure you're using a **data USB cable**, not a charge-only cable.
+4. On macOS, check System Information → USB to verify the board appears.
+
+</details>
+
+<details>
+<summary><strong>Mouse cursor is jittery or too fast/slow</strong></summary>
+
+- **Adjust sensitivity** — press Home + Vol Up to increase, Home + Vol Down to decrease. Settings are saved to flash.
+- **Recenter** — hold Home for 1 second to recenter the air mouse orientation.
+- If the cursor drifts, recenter by long-pressing Home while the controller is stationary.
+
+</details>
+
+<details>
+<summary><strong>No serial output in monitor</strong></summary>
+
+The XIAO ESP32-S3 uses USB CDC for serial. After the firmware boots and starts USB HID, the serial port may re-enumerate with a different name. Try:
+
+1. Disconnect and reconnect the USB cable
+2. Check `ls /dev/cu.usb*` for the new port name
+3. Use `platformio device monitor --port /dev/cu.usbmodemXXXX --rts 0 --dtr 0`
+
+</details>
 
 ## Project Structure
 

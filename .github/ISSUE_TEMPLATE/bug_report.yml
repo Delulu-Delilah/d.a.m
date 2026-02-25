@@ -1,0 +1,55 @@
+name: 🐛 Bug Report
+description: Something isn't working right
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: board
+    attributes:
+      label: Board
+      options:
+        - Seeed XIAO ESP32-S3
+        - Other (specify below)
+    validations:
+      required: true
+  - type: input
+    id: other-board
+    attributes:
+      label: Board name (if Other)
+      placeholder: e.g. ESP32-S3 DevKitC-1
+  - type: dropdown
+    id: controller
+    attributes:
+      label: Daydream Controller Firmware
+      description: Older controllers pair differently than newer ones
+      options:
+        - Not sure
+        - Original firmware
+        - Updated firmware
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      placeholder: Describe the issue
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      placeholder: What should have happened instead
+  - type: textarea
+    id: serial
+    attributes:
+      label: Serial output (if available)
+      description: Paste any relevant serial monitor output
+      render: text
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Flash firmware
+        2. Pair controller
+        3. ...
