@@ -120,6 +120,8 @@ struct ControllerSlot {
   NimBLEClient *client = nullptr;
   bool connected = false;
   bool doConnect = false;
+  bool connectingInProgress = false;
+  volatile int connectResult = 0; // 0=pending, 1=success, -1=fail
   bool notificationsWorking = false;
   unsigned long connectTime = 0;
   unsigned long notifyCount = 0;
@@ -586,13 +588,13 @@ class ScanCallbacks : public NimBLEAdvertisedDeviceCallbacks {
 static ScanCallbacks scanCB;
 
 // ─── BLE Connect ────────────────────────────────────────────────────────────
+// This runs on a background FreeRTOS task so the main loop stays responsive.
 
-bool connectToController(int slotIdx) {
+void connectToControllerTask(void *param) {
+  int slotIdx = (int)(intptr_t)param;
   ControllerSlot &s = slots[slotIdx];
-  if (!s.hasAddress)
-    return false;
 
-  Serial.printf("[SLOT %d] Connecting...\n", slotIdx);
+  Serial.printf("[SLOT %d] Connecting (bg task)...\n", slotIdx);
 
   if (!s.client) {
     s.client = NimBLEDevice::createClient();
@@ -603,26 +605,35 @@ bool connectToController(int slotIdx) {
     s.client->setConnectTimeout(10);
   }
 
-  if (!s.client->connect(s.address, false)) { // connect to address directly
+  if (!s.client->connect(s.address, false)) {
     Serial.printf("[SLOT %d] Connection failed!\n", slotIdx);
-    return false;
+    s.connectResult = -1;
+    s.connectingInProgress = false;
+    vTaskDelete(NULL);
+    return;
   }
 
   NimBLERemoteService *pService = s.client->getService(SERVICE_UUID);
   if (!pService) {
     s.client->disconnect();
-    return false;
+    s.connectResult = -1;
+    s.connectingInProgress = false;
+    vTaskDelete(NULL);
+    return;
   }
 
   NimBLERemoteCharacteristic *pChar = pService->getCharacteristic(CHAR_UUID);
   if (!pChar) {
     s.client->disconnect();
-    return false;
+    s.connectResult = -1;
+    s.connectingInProgress = false;
+    vTaskDelete(NULL);
+    return;
   }
 
   Serial.printf("[SLOT %d] Requesting bonding...\n", slotIdx);
   s.client->secureConnection();
-  delay(500);
+  vTaskDelay(pdMS_TO_TICKS(500));
 
   if (pChar->canNotify()) {
     if (!pChar->subscribe(true, slotCallbacks[slotIdx])) {
@@ -635,16 +646,19 @@ bool connectToController(int slotIdx) {
     }
   } else {
     s.client->disconnect();
-    return false;
+    s.connectResult = -1;
+    s.connectingInProgress = false;
+    vTaskDelete(NULL);
+    return;
   }
 
   unsigned long waitStart = millis();
   while (!s.notificationsWorking && millis() - waitStart < 3000)
-    delay(50);
+    vTaskDelay(pdMS_TO_TICKS(50));
 
   if (!s.notificationsWorking) {
     pChar->unsubscribe();
-    delay(200);
+    vTaskDelay(pdMS_TO_TICKS(200));
     NimBLERemoteDescriptor *cccd = pChar->getDescriptor(CCCD_UUID);
     if (cccd) {
       uint8_t enableNotify[] = {0x01, 0x00};
@@ -653,7 +667,7 @@ bool connectToController(int slotIdx) {
     pChar->subscribe(true, slotCallbacks[slotIdx]);
     waitStart = millis();
     while (!s.notificationsWorking && millis() - waitStart < 3000)
-      delay(50);
+      vTaskDelay(pdMS_TO_TICKS(50));
   }
 
   if (s.notificationsWorking) {
@@ -662,7 +676,7 @@ bool connectToController(int slotIdx) {
     Serial.printf("[SLOT %d] No data\n", slotIdx);
   }
 
-  // Discover Battery Service (0x180f) and subscribe to fix LED flashing
+  // Discover Battery Service
   NimBLERemoteService *pBatService = s.client->getService(BATTERY_SERVICE_UUID);
   if (pBatService) {
     NimBLERemoteCharacteristic *pBatChar =
@@ -678,7 +692,20 @@ bool connectToController(int slotIdx) {
     Serial.printf("[SLOT %d] Battery service not found\n", slotIdx);
   }
 
-  return true;
+  s.connectResult = 1;
+  s.connectingInProgress = false;
+  vTaskDelete(NULL);
+}
+
+void startConnectTask(int slotIdx) {
+  slots[slotIdx].connectingInProgress = true;
+  slots[slotIdx].connectResult = 0;
+  xTaskCreatePinnedToCore(connectToControllerTask, "bleConn", 4096,
+                          (void *)(intptr_t)slotIdx,
+                          1, // priority
+                          NULL,
+                          0 // run on core 0 (NimBLE's core)
+  );
 }
 
 // ─── BLE Scan Start ─────────────────────────────────────────────────────────
@@ -1205,11 +1232,21 @@ void loop() {
     }
   }
 
-  // ── Handle pending connections ──
+  // ── Handle pending connections (dispatch to background task) ──
   for (int i = 0; i < MAX_CONTROLLERS; i++) {
-    if (slots[i].doConnect) {
+    if (slots[i].doConnect && !slots[i].connectingInProgress) {
       slots[i].doConnect = false;
-      if (connectToController(i)) {
+      startConnectTask(i);
+    }
+  }
+
+  // ── Poll connection results ──
+  for (int i = 0; i < MAX_CONTROLLERS; i++) {
+    if (slots[i].connectResult != 0) {
+      int result = slots[i].connectResult;
+      slots[i].connectResult = 0;
+
+      if (result == 1) {
         Serial.printf("[SLOT %d] Ready!\n", i);
         if (!slots[activeSlot].connected ||
             !slots[activeSlot].notificationsWorking) {
