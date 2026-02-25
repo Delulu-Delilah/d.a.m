@@ -83,12 +83,12 @@ static DeviceMode currentMode = MODE_AIR_MOUSE;
 
 // ─── Configuration (defaults, overridden by saved prefs) ────────────────────
 
-static float airMouseSensitivity = 1800.0f;
+static float airMouseSensitivity = 30.0f;
 static float trackpadSensitivity = 6.0f;
 static float scrollSensitivity = 3.0f;
 static const float SMOOTH_ALPHA = 0.45f;
 
-static const float AIR_MOUSE_DEADZONE = 0.003f;
+static const float AIR_MOUSE_DEADZONE = 0.15f;
 static const float SCROLL_DEADZONE = 0.008f;
 static const float SWIPE_THRESHOLD = 0.25f;
 
@@ -198,7 +198,7 @@ static bool sleepMode = false;
 
 void loadPreferences() {
   prefs.begin("ddmouse", true); // read-only
-  airMouseSensitivity = prefs.getFloat("airSens", 1800.0f);
+  airMouseSensitivity = prefs.getFloat("airSens", 30.0f);
   trackpadSensitivity = prefs.getFloat("tpadSens", 6.0f);
   scrollSensitivity = prefs.getFloat("scrollSens", 3.0f);
   prefs.end();
@@ -650,29 +650,27 @@ void startScan() {
 }
 
 // ─── Air Mouse Movement ─────────────────────────────────────────────────────
+// Uses gyroscope data (angular velocity) instead of Euler orientation deltas.
+// This avoids gimbal lock / roll-to-pitch crosstalk that occurs with Euler
+// angles when the controller is rolled along its long axis.
 
 void processAirMouse(ControllerSlot &s) {
-  if (!s.hasRefOrientation) {
-    s.refXOri = s.current.xOri;
-    s.refYOri = s.current.yOri;
-    s.hasRefOrientation = true;
-    return;
-  }
+  float gyroYaw = s.current.yGyro;
+  float gyroPitch = s.current.xGyro;
 
-  float deltaYaw = s.current.yOri - s.previous.yOri;
-  float deltaPitch = s.current.xOri - s.previous.xOri;
+  // Reject huge spikes (sensor glitch / wraparound)
+  if (fabsf(gyroYaw) > 20.0f)
+    gyroYaw = 0;
+  if (fabsf(gyroPitch) > 20.0f)
+    gyroPitch = 0;
+  // Deadzone for hand tremor
+  if (fabsf(gyroYaw) < AIR_MOUSE_DEADZONE)
+    gyroYaw = 0;
+  if (fabsf(gyroPitch) < AIR_MOUSE_DEADZONE)
+    gyroPitch = 0;
 
-  if (fabsf(deltaYaw) > 1.0f)
-    deltaYaw = 0;
-  if (fabsf(deltaPitch) > 1.0f)
-    deltaPitch = 0;
-  if (fabsf(deltaYaw) < AIR_MOUSE_DEADZONE)
-    deltaYaw = 0;
-  if (fabsf(deltaPitch) < AIR_MOUSE_DEADZONE)
-    deltaPitch = 0;
-
-  float rawDx = -deltaYaw * airMouseSensitivity;
-  float rawDy = -deltaPitch * airMouseSensitivity;
+  float rawDx = -gyroYaw * airMouseSensitivity;
+  float rawDy = -gyroPitch * airMouseSensitivity;
 
   s.smoothDx = SMOOTH_ALPHA * rawDx + (1.0f - SMOOTH_ALPHA) * s.smoothDx;
   s.smoothDy = SMOOTH_ALPHA * rawDy + (1.0f - SMOOTH_ALPHA) * s.smoothDy;
@@ -807,7 +805,7 @@ void checkSensitivityCombo(ControllerSlot &s) {
   if (s.current.homeBtn && s.current.volUpBtn && !sensComboFired) {
     sensComboFired = true;
     float factor = 1.0f + SENSITIVITY_STEP;
-    airMouseSensitivity = fminf(airMouseSensitivity * factor, 20000.0f);
+    airMouseSensitivity = fminf(airMouseSensitivity * factor, 300.0f);
     trackpadSensitivity = fminf(trackpadSensitivity * factor, 60.0f);
     scrollSensitivity = fminf(scrollSensitivity * factor, 30.0f);
     Serial.printf("[SENS] ↑ air=%.0f tpad=%.1f scroll=%.1f\n",
@@ -820,7 +818,7 @@ void checkSensitivityCombo(ControllerSlot &s) {
     // App+VolDown is the controller switch combo
     sensComboFired = true;
     float factor = 1.0f - SENSITIVITY_STEP;
-    airMouseSensitivity = fmaxf(airMouseSensitivity * factor, 100.0f);
+    airMouseSensitivity = fmaxf(airMouseSensitivity * factor, 2.0f);
     trackpadSensitivity = fmaxf(trackpadSensitivity * factor, 0.5f);
     scrollSensitivity = fmaxf(scrollSensitivity * factor, 0.5f);
     Serial.printf("[SENS] ↓ air=%.0f tpad=%.1f scroll=%.1f\n",
