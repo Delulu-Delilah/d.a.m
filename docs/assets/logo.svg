@@ -1,0 +1,130 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#1E1B4B" />
+    </linearGradient>
+
+    <!-- Controller Gradients -->
+    <linearGradient gradientUnits="userSpaceOnUse" id="ctrl-SVGID_1_" x1="108.5376" x2="399.8387" y1="110.2466" y2="401.5476">
+      <stop offset="0" style="stop-color:#00B6C7"/><stop offset="0.2296" style="stop-color:#29E9CB"/><stop offset="1" style="stop-color:#B4E9B2"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" id="ctrl-SVGID_2_" x1="197.5825" x2="310.4945" y1="27.8237" y2="140.7357">
+      <stop offset="0" style="stop-color:#00B6C7"/><stop offset="0.2296" style="stop-color:#29E9CB"/><stop offset="1" style="stop-color:#B4E9B2"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" id="ctrl-SVGID_3_" x1="231.6538" x2="276.7208" y1="187.9976" y2="233.0646">
+      <stop offset="0" style="stop-color:#00B6C7"/><stop offset="0.2296" style="stop-color:#29E9CB"/><stop offset="1" style="stop-color:#B4E9B2"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" id="ctrl-SVGID_4_" x1="246.5835" x2="261.7911" y1="202.9302" y2="218.1378">
+      <stop offset="0" style="stop-color:#00B6C7"/><stop offset="0.2296" style="stop-color:#29E9CB"/><stop offset="1" style="stop-color:#B4E9B2"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" id="ctrl-SVGID_5_" x1="231.6548" x2="276.7204" y1="268.168" y2="313.2336">
+      <stop offset="0" style="stop-color:#00B6C7"/><stop offset="0.2296" style="stop-color:#29E9CB"/><stop offset="1" style="stop-color:#B4E9B2"/>
+    </linearGradient>
+    <linearGradient gradientUnits="userSpaceOnUse" id="ctrl-SVGID_6_" x1="244.7983" x2="263.5795" y1="281.5332" y2="300.3143">
+      <stop offset="0" style="stop-color:#00B6C7"/><stop offset="0.2296" style="stop-color:#29E9CB"/><stop offset="1" style="stop-color:#B4E9B2"/>
+    </linearGradient>
+
+    <!-- Logo Gradients -->
+    <radialGradient id="paint0_radial_0_4" cx="0" cy="0" r="1" gradientTransform="matrix(79.4171 105.738 -97.2246 86.3713 23.3114 19.744)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1DDDBD"/>
+      <stop offset="0.412807" stop-color="#1ED9C0"/>
+      <stop offset="1" stop-color="#2978FF"/>
+    </radialGradient>
+    <radialGradient id="paint1_radial_0_4" cx="0" cy="0" r="1" gradientTransform="matrix(-6.4989 -27.9377 28.2088 -6.43644 27.6637 75.3984)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.01"/>
+    </radialGradient>
+    <radialGradient id="paint2_radial_0_4" cx="0" cy="0" r="1" gradientTransform="matrix(-27.3814 -8.29805 8.55725 -27.6596 48.6335 113.016)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.01"/>
+    </radialGradient>
+    <radialGradient id="paint3_radial_0_4" cx="0" cy="0" r="1" gradientTransform="matrix(-20.8659 19.5459 -19.6496 -21.2048 91.7822 113.667)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.01"/>
+    </radialGradient>
+    <radialGradient id="paint4_radial_0_4" cx="0" cy="0" r="1" gradientTransform="matrix(6.47942 27.8189 -28.1243 6.40907 113.899 76.6821)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.01"/>
+    </radialGradient>
+    <radialGradient id="paint5_radial_0_4" cx="0" cy="0" r="1" gradientTransform="matrix(27.4995 8.38409 -8.49477 27.6183 92.737 38.8607)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.01"/>
+    </radialGradient>
+    <radialGradient id="paint6_radial_0_4" cx="0" cy="0" r="1" gradientTransform="matrix(21.0728 -19.6409 19.6489 21.0991 49.7609 38.4185)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.01"/>
+    </radialGradient>
+    <clipPath id="clip0_0_4">
+      <rect width="142" height="152" fill="white"/>
+    </clipPath>
+
+    <!-- Drop Shadow for Cursor -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-opacity="0.5"/>
+    </filter>
+
+    <!-- Drop Shadow for Controller -->
+    <filter id="ctrl-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="15" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bg-grad)" />
+
+  <!-- Background Pattern - Daydream Logo large and subdued -->
+  <g transform="translate(100, 80) scale(2.2) rotate(15)" opacity="0.15">
+    <g clip-path="url(#clip0_0_4)">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M74.6112 53.6909L74.6139 53.6961L89.4737 42.73L74.6112 53.6909ZM99.1182 35.6172L99.2752 35.5015C95.9716 14.9442 75.4086 7.38502 62.4591 12.01C55.2393 14.5886 49.2795 21.4041 50.2102 31.3204C52.3769 32.1474 54.8059 33.3552 57.3105 34.9365C55.4692 33.7927 53.5303 32.7622 51.4987 31.8571C51.1299 31.6903 50.597 31.4757 50.2253 31.3264L53.375 61.5729L53.3692 61.5726L50.2124 31.339C30.7576 23.9214 13.4853 37.6013 11.0159 51.1284C9.63915 58.6703 12.761 67.3537 21.8142 71.5059C22.056 71.3118 22.3063 71.117 22.5646 70.9219C22.3067 71.1186 22.0308 71.3369 21.8155 71.5079L49.5668 83.8977C49.5667 83.898 49.5665 83.8983 49.5663 83.8985L21.8175 71.5172C5.66624 84.6568 8.95152 106.561 19.4316 115.463C25.2699 120.423 34.2522 121.775 42.3694 116.028C42.3703 116.034 42.3712 116.04 42.3721 116.046L42.3731 116.045C45.6839 136.592 66.1449 144.887 79.0914 140.263C86.3113 137.684 92.1813 130.582 91.2506 120.666L91.2449 120.663L88.2482 90.4895C90.2252 90.5831 92.2086 90.5561 94.1867 90.4068C92.2617 90.5567 90.2847 90.592 88.2681 90.4915L91.2528 120.654C110.708 128.072 128.03 114.379 130.5 100.852C131.875 93.3166 128.702 84.8324 119.667 80.6764L119.683 80.6637L119.706 80.6742C135.858 67.5346 132.62 45.6299 122.14 36.7278C116.299 31.7659 107.392 29.7569 99.2715 35.5155L99.2709 35.5111L99.1182 35.6172ZM42.1325 113.965C42.0017 112.451 41.9431 110.945 41.9543 109.451C41.9335 111.043 41.9973 112.556 42.1325 113.965ZM46.8238 88.7919C47.5222 87.3598 48.2906 85.9621 49.1253 84.6032C48.272 85.9796 47.5068 87.3798 46.8238 88.7919ZM71.8307 105.881C70.0123 103.587 68.3689 101.075 67.0091 98.3627L67.0122 98.3604C68.388 101.009 69.9987 103.527 71.8307 105.881ZM90.295 120.28C88.9756 119.722 87.5782 119.028 86.1408 118.205C87.4273 118.927 88.7577 119.596 90.1303 120.208C90.1852 120.232 90.2401 120.256 90.295 120.28ZM118.578 81.5025C115.644 83.6155 112.547 85.3502 109.348 86.7149C112.987 85.1865 116.12 83.3521 118.578 81.5025ZM99.1771 49.1731C99.1621 49.2703 99.1468 49.3675 99.1312 49.4649C99.3757 47.8669 99.54 46.2479 99.6208 44.6122C99.5552 46.0967 99.4163 47.6231 99.1771 49.1731ZM99.3435 36.2927C99.3985 36.8576 99.4495 37.4389 99.494 38.0349C99.4701 37.7614 99.4437 37.4877 99.4151 37.2137C99.3967 37.0465 99.3788 36.7919 99.3599 36.5231L99.3599 36.5229L99.3599 36.5226L99.3598 36.5219L99.3598 36.5217L99.3435 36.2927ZM74.0934 52.7216C72.6557 50.1006 70.9842 47.6145 69.0923 45.2976C70.9392 47.5345 72.6397 50.0105 74.0934 52.7216ZM52.1647 61.5309C49.1107 61.4633 46.0451 61.6842 43.0116 62.1998C45.9835 61.6632 49.0635 61.4054 52.1647 61.5309ZM24.5661 69.5145C24.0078 69.8852 23.4549 70.2691 22.9077 70.6663C23.4302 70.2819 23.9838 69.897 24.5661 69.5145Z" fill="url(#paint0_radial_0_4)"/>
+    </g>
+  </g>
+
+  <!-- Central Composition -->
+  <g transform="translate(10, 10) scale(0.96)">
+    <!-- Controller Group, angled slightly and filtered with shadow -->
+    <g transform="translate(40, -10) rotate(15 256 256) scale(0.85)" filter="url(#ctrl-shadow)">
+      <path d="M337.694,81.3 c0-43.9-37.389-79.488-83.507-79.488c-46.121,0-83.507,35.587-83.507,79.488v349.192l0,0v0.002 c0,43.897,37.386,79.486,83.507,79.486c46.118,0,83.507-35.589,83.507-79.486C337.694,428.314,337.694,83.481,337.694,81.3z" fill="#20232A" stroke="url(#ctrl-SVGID_1_)" stroke-miterlimit="10" stroke-width="3"/>
+      
+      <!-- Trackpad -->
+      <circle cx="254.038" cy="84.279" fill="#181A1E" r="78.841" stroke="url(#ctrl-SVGID_2_)" stroke-miterlimit="10" stroke-width="2"/>
+      <!-- Small day dream dot/logo on trackpad area? No, the original SVG had some buttons -->
+      <g>
+        <path d="M254.188,179.649 c-17.028,0-30.881,13.854-30.881,30.882c0,17.027,13.853,30.881,30.881,30.881c17.027,0,30.88-13.854,30.88-30.881 C285.067,193.503,271.215,179.649,254.188,179.649z" fill="#181A1E" stroke="url(#ctrl-SVGID_3_)" stroke-miterlimit="10" stroke-width="2"/>
+        <path d="M265.828,208.644h-0.221 c-0.005,0-0.01-0.003-0.015-0.003h-23.047c-0.347,0-0.63,0.283-0.63,0.63v0.004v0.118v2.031v0.371c0,0.347,0.283,0.63,0.63,0.63 h23.282c0.347,0,0.63-0.283,0.63-0.63v-2.521C266.458,208.927,266.175,208.644,265.828,208.644z" fill="#181A1E" stroke="url(#ctrl-SVGID_4_)" stroke-miterlimit="10" stroke-width="2"/>
+      </g>
+      <path d="M254.188,259.819 c-17.028,0-30.881,13.854-30.881,30.882c0,17.026,13.853,30.88,30.881,30.88c17.027,0,30.88-13.854,30.88-30.88 C285.067,273.673,271.215,259.819,254.188,259.819z" fill="#181A1E" stroke="url(#ctrl-SVGID_5_)" stroke-miterlimit="10" stroke-width="2"/>
+      <path d="M265.995,287.587 c-1.574-5.579-6.789-9.174-12.359-8.925c-0.931,0.032-1.868,0.181-2.792,0.439c-6.504,1.836-10.302,8.643-8.466,15.146 c1.469,5.207,6.098,8.697,11.229,8.938c1.289,0.078,2.593-0.059,3.909-0.431C264.037,300.915,267.834,294.109,265.995,287.587z" fill="#181A1E" stroke="url(#ctrl-SVGID_6_)" stroke-miterlimit="10" stroke-width="2"/>
+    </g>
+
+    <!-- Cursor jumping out of the controller trackpad -->
+    <g transform="translate(140, 60) scale(4.5) rotate(-15)" filter="url(#shadow)">
+      <path d="m6.148 18.473 1.863-1.003 1.615-.839-2.568-4.816h4.332l-11.379-11.408v16.015l3.316-3.221z" fill="#ffffff" stroke="#ffffff" stroke-width="0.5" stroke-linejoin="round"/>
+      <path d="m6.431 17 1.765-.941-2.775-5.202h3.604l-8.025-8.043v11.188l2.53-2.442z" fill="#000000"/>
+    </g>
+
+    <!-- Connection lines/arcs indicating wireless control -->
+    <g transform="translate(180, 160)" stroke="url(#paint0_radial_0_4)" stroke-width="4" stroke-linecap="round" fill="none">
+      <path d="M-50,20 Q-20,0 20,40" opacity="0.4" stroke-dasharray="8 8"/>
+      <path d="M-70,50 Q-30,20 10,70" opacity="0.7" stroke-dasharray="8 8"/>
+      <path d="M-90,80 Q-40,40 -10,100" opacity="0.3" stroke-dasharray="8 8"/>
+    </g>
+
+    <!-- Overlay the Daydream Logo scaled down nicely in the bottom right corner -->
+    <g transform="translate(320, 340) scale(1)">
+      <circle cx="71" cy="76" r="60" fill="#0F172A" opacity="0.6" filter="url(#shadow)" />
+      <g clip-path="url(#clip0_0_4)">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M74.6112 53.6909L74.6139 53.6961L89.4737 42.73L74.6112 53.6909ZM99.1182 35.6172L99.2752 35.5015C95.9716 14.9442 75.4086 7.38502 62.4591 12.01C55.2393 14.5886 49.2795 21.4041 50.2102 31.3204C52.3769 32.1474 54.8059 33.3552 57.3105 34.9365C55.4692 33.7927 53.5303 32.7622 51.4987 31.8571C51.1299 31.6903 50.597 31.4757 50.2253 31.3264L53.375 61.5729L53.3692 61.5726L50.2124 31.339C30.7576 23.9214 13.4853 37.6013 11.0159 51.1284C9.63915 58.6703 12.761 67.3537 21.8142 71.5059C22.056 71.3118 22.3063 71.117 22.5646 70.9219C22.3067 71.1186 22.0308 71.3369 21.8155 71.5079L49.5668 83.8977C49.5667 83.898 49.5665 83.8983 49.5663 83.8985L21.8175 71.5172C5.66624 84.6568 8.95152 106.561 19.4316 115.463C25.2699 120.423 34.2522 121.775 42.3694 116.028C42.3703 116.034 42.3712 116.04 42.3721 116.046L42.3731 116.045C45.6839 136.592 66.1449 144.887 79.0914 140.263C86.3113 137.684 92.1813 130.582 91.2506 120.666L91.2449 120.663L88.2482 90.4895C90.2252 90.5831 92.2086 90.5561 94.1867 90.4068C92.2617 90.5567 90.2847 90.592 88.2681 90.4915L91.2528 120.654C110.708 128.072 128.03 114.379 130.5 100.852C131.875 93.3166 128.702 84.8324 119.667 80.6764L119.683 80.6637L119.706 80.6742C135.858 67.5346 132.62 45.6299 122.14 36.7278C116.299 31.7659 107.392 29.7569 99.2715 35.5155L99.2709 35.5111L99.1182 35.6172ZM42.1325 113.965C42.0017 112.451 41.9431 110.945 41.9543 109.451C41.9335 111.043 41.9973 112.556 42.1325 113.965ZM46.8238 88.7919C47.5222 87.3598 48.2906 85.9621 49.1253 84.6032C48.272 85.9796 47.5068 87.3798 46.8238 88.7919ZM71.8307 105.881C70.0123 103.587 68.3689 101.075 67.0091 98.3627L67.0122 98.3604C68.388 101.009 69.9987 103.527 71.8307 105.881ZM90.295 120.28C88.9756 119.722 87.5782 119.028 86.1408 118.205C87.4273 118.927 88.7577 119.596 90.1303 120.208C90.1852 120.232 90.2401 120.256 90.295 120.28ZM118.578 81.5025C115.644 83.6155 112.547 85.3502 109.348 86.7149C112.987 85.1865 116.12 83.3521 118.578 81.5025ZM99.1771 49.1731C99.1621 49.2703 99.1468 49.3675 99.1312 49.4649C99.3757 47.8669 99.54 46.2479 99.6208 44.6122C99.5552 46.0967 99.4163 47.6231 99.1771 49.1731ZM99.3435 36.2927C99.3985 36.8576 99.4495 37.4389 99.494 38.0349C99.4701 37.7614 99.4437 37.4877 99.4151 37.2137C99.3967 37.0465 99.3788 36.7919 99.3599 36.5231L99.3599 36.5229L99.3599 36.5226L99.3598 36.5219L99.3598 36.5217L99.3435 36.2927ZM74.0934 52.7216C72.6557 50.1006 70.9842 47.6145 69.0923 45.2976C70.9392 47.5345 72.6397 50.0105 74.0934 52.7216ZM52.1647 61.5309C49.1107 61.4633 46.0451 61.6842 43.0116 62.1998C45.9835 61.6632 49.0635 61.4054 52.1647 61.5309ZM24.5661 69.5145C24.0078 69.8852 23.4549 70.2691 22.9077 70.6663C23.4302 70.2819 23.9838 69.897 24.5661 69.5145Z" fill="url(#paint0_radial_0_4)"/>
+        <g id="white gradients">
+          <path id="Path 2 Copy 11" opacity="0.65" fill-rule="evenodd" clip-rule="evenodd" d="M53.372 61.5454L50.2124 31.2851C30.7576 23.8675 13.4853 37.5474 11.0159 51.0745C9.63915 58.6164 12.761 67.2999 21.8142 71.452C28.2668 66.2712 40.7369 60.623 53.372 61.5454Z" fill="url(#paint1_radial_0_4)"/>
+          <path id="Path 2 Copy 6" opacity="0.65" fill-rule="evenodd" clip-rule="evenodd" d="M49.5702 83.8464L21.8175 71.4634C5.66623 84.6029 8.95151 106.507 19.4316 115.41C25.2747 120.373 34.2671 121.724 42.3896 115.959C41.1056 107.78 42.3896 94.9625 49.5702 83.8464Z" fill="url(#paint2_radial_0_4)"/>
+          <path id="Path 2 Copy 7" opacity="0.65" fill-rule="evenodd" clip-rule="evenodd" d="M67.0077 98.3059L42.3708 115.977C45.6744 136.534 66.1419 144.834 79.0914 140.209C86.3113 137.631 92.1813 130.528 91.2506 120.612C83.5757 117.664 72.7564 109.775 67.0077 98.3059Z" fill="url(#paint3_radial_0_4)"/>
+          <path id="Path 2 Copy 8" opacity="0.65" fill-rule="evenodd" clip-rule="evenodd" d="M88.2681 90.4377L91.2528 120.6C110.708 128.018 128.03 114.325 130.5 100.798C131.877 93.2562 128.697 84.7639 119.644 80.6117C113.387 85.7487 101.708 91.1069 88.2681 90.4377Z" fill="url(#paint4_radial_0_4)"/>
+          <path id="Path 2 Copy 9" opacity="0.65" fill-rule="evenodd" clip-rule="evenodd" d="M92.0558 68.1073L119.706 80.6203C135.858 67.4807 132.62 45.576 122.14 36.674C116.297 31.7107 107.388 29.702 99.2651 35.4662C99.6765 39.3597 99.9491 44.1166 99.1771 49.1192C98.2219 55.3093 96.0582 61.8282 92.0558 68.1073Z" fill="url(#paint5_radial_0_4)"/>
+          <path id="Path 2 Copy 10" opacity="0.65" fill-rule="evenodd" clip-rule="evenodd" d="M74.6011 53.6444L99.2752 35.4476C95.9716 14.8903 75.4086 7.33114 62.4591 11.9561C55.2393 14.5348 49.2795 21.3502 50.2102 31.2666C57.7966 34.162 68.5982 41.7261 74.6011 53.6444Z" fill="url(#paint6_radial_0_4)"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
