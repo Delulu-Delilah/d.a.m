@@ -11,8 +11,11 @@ Uses a **Seeed XIAO ESP32-S3** as a tiny BLE-to-USB bridge that connects to the 
   - 🖱️ **Trackpad** — use the Daydream touchpad as a mouse trackpad
   - 🎵 **Media** — swipe for next/previous track, click for play/pause, volume buttons
 - **Dual controller support** — connect two Daydream controllers simultaneously, switch with App + Volume Down combo
+- **Adjustable sensitivity** — Home + Vol Up/Down to adjust on the fly, auto-saved to flash
+- **Smart LED feedback** — breathing while scanning, solid when connected, off when sleeping
+- **Auto-sleep** — stops scanning after 2 min if no controller found, press Boot to wake
 - **Updated firmware compatible** — works with both old and new Daydream controller firmware (BLE bonding + CCCD fix)
-- **Cross-platform flasher app** — one-click GUI tool to flash firmware, no developer tools needed
+- **Cross-platform flasher app** — auto-detects ESP32, progress bar, post-flash verification
 
 ## Hardware
 
@@ -54,6 +57,8 @@ platformio run --target upload
 | Home (short press) | Cycle mode: Air Mouse → Trackpad → Media |
 | Home (hold 1s) | Recenter orientation (air mouse) |
 | App + Vol Down | Switch active controller (dual mode) |
+| Home + Vol Up | Increase sensitivity (saved to flash) |
+| Home + Vol Down | Decrease sensitivity (saved to flash) |
 
 ### Air Mouse & Trackpad Mode
 | Input | Action |
@@ -71,6 +76,15 @@ platformio run --target upload
 | Swipe left | Previous track |
 | App button | Mute |
 | Vol Up / Vol Down | Volume up / down |
+
+### LED States
+| Pattern | Meaning |
+|---------|---------|
+| 💨 Breathing | Scanning for controllers |
+| 🔵 Solid | Connected |
+| ⚫ Off | Sleeping (press Boot to wake) |
+| 1 flash | Slot 0 active |
+| 2 flashes | Slot 1 active |
 
 ## Building the Flasher App
 
