@@ -902,6 +902,97 @@ void processButtons(ControllerSlot &s) {
   s.prevVolUpBtn = s.current.volUpBtn;
 }
 
+// ─── Serial Command Parser (Web Configurator) ──────────────────────────────
+// Newline-delimited JSON protocol. Responses prefixed with '>' to distinguish
+// from debug output. Browser dashboard filters lines starting with '>'.
+
+static char serialBuf[256];
+static int serialBufPos = 0;
+
+// Helper: extract a float value from a JSON-ish string like ..."key":123.4...
+static bool jsonFloat(const String &json, const char *key, float &out) {
+  String needle = String("\"") + key + "\":";
+  int idx = json.indexOf(needle);
+  if (idx < 0)
+    return false;
+  idx += needle.length();
+  out = json.substring(idx).toFloat();
+  return true;
+}
+
+// Helper: extract an int value
+static bool jsonInt(const String &json, const char *key, int &out) {
+  String needle = String("\"") + key + "\":";
+  int idx = json.indexOf(needle);
+  if (idx < 0)
+    return false;
+  idx += needle.length();
+  out = json.substring(idx).toInt();
+  return true;
+}
+
+void sendConfig() {
+  Serial.printf(">{\"type\":\"config\",\"air\":%.1f,\"tpad\":%.1f,\"scroll\":%."
+                "1f,\"version\":\"1.1\"}\n",
+                airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
+}
+
+void sendStatus() {
+  Serial.printf(
+      ">{\"type\":\"status\",\"mode\":%d,\"modeName\":\"%s\",\"slot\":%d,"
+      "\"c0\":%s,\"c1\":%s,\"sleep\":%s}\n",
+      (int)currentMode, modeNames[currentMode], activeSlot,
+      slots[0].connected ? "true" : "false",
+      slots[1].connected ? "true" : "false", sleepMode ? "true" : "false");
+}
+
+void processSerialLine(const char *line) {
+  String s(line);
+  s.trim();
+  if (s.length() == 0 || s.charAt(0) != '{')
+    return;
+
+  if (s.indexOf("\"get_config\"") >= 0) {
+    sendConfig();
+  } else if (s.indexOf("\"set_config\"") >= 0) {
+    float val;
+    if (jsonFloat(s, "air", val))
+      airMouseSensitivity = constrain(val, 100.0f, 10000.0f);
+    if (jsonFloat(s, "tpad", val))
+      trackpadSensitivity = constrain(val, 0.5f, 50.0f);
+    if (jsonFloat(s, "scroll", val))
+      scrollSensitivity = constrain(val, 0.5f, 50.0f);
+    savePreferences();
+    sendConfig();
+  } else if (s.indexOf("\"get_status\"") >= 0) {
+    sendStatus();
+  } else if (s.indexOf("\"set_mode\"") >= 0) {
+    int m;
+    if (jsonInt(s, "mode", m) && m >= 0 && m <= 2) {
+      currentMode = (DeviceMode)m;
+      ledIndicateMode(currentMode);
+      Serial.printf("[MODE] Switched to %s (via serial)\n",
+                    modeNames[currentMode]);
+    }
+    sendStatus();
+  }
+}
+
+void processSerialCommands() {
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\n' || c == '\r') {
+      if (serialBufPos > 0) {
+        serialBuf[serialBufPos] = '\0';
+        processSerialLine(serialBuf);
+        serialBufPos = 0;
+      }
+    } else if (serialBufPos < (int)sizeof(serialBuf) - 1) {
+      serialBuf[serialBufPos++] = c;
+    }
+  }
+}
+
 // ─── Setup ──────────────────────────────────────────────────────────────────
 
 void setup() {
@@ -959,6 +1050,9 @@ static unsigned long lastReconnectAttempt = 0;
 static unsigned long lastStatusPrint = 0;
 
 void loop() {
+  // ── Serial command processing (Web Configurator) ──
+  processSerialCommands();
+
   // ── LED breathing animation ──
   ledUpdateBreathing();
 

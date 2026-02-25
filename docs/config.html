@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daydream Air Mouse — Configure</title>
+    <meta name="description" content="Configure your Daydream Air Mouse settings in real-time over USB.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #050505;
+            background-image:
+                radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225, 39%, 10%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339, 29%, 8%, 1) 0, transparent 50%);
+            background-attachment: fixed;
+            color: #e4e4e7;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .card {
+            max-width: 540px;
+            width: 100%;
+            background: rgba(24, 24, 27, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        /* ── Connection ── */
+        .connect-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .connect-btn {
+            flex: 1;
+            padding: 14px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .connect-btn.connect {
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            color: white;
+            box-shadow: 0 8px 16px rgba(14, 165, 233, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .connect-btn.connect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(14, 165, 233, 0.3);
+        }
+
+        .connect-btn.disconnect {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .connect-btn.disconnect:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #52525b;
+            transition: background 0.3s;
+        }
+
+        .status-dot.connected {
+            background: #22c55e;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+        }
+
+        /* ── Sections ── */
+        .section {
+            margin-bottom: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 1.25rem;
+        }
+
+        /* ── Sliders ── */
+        .slider-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .slider-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #d4d4d8;
+        }
+
+        .slider-value {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #38bdf8;
+            font-variant-numeric: tabular-nums;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.08);
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #38bdf8;
+            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.4);
+            cursor: grab;
+            transition: transform 0.15s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        /* ── Mode selector ── */
+        .mode-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.3);
+            color: #94a3b8;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #e4e4e7;
+        }
+
+        .mode-btn.active {
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+        }
+
+        /* ── Status panel ── */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .status-item {
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .status-item-label {
+            font-size: 0.75rem;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.35rem;
+        }
+
+        .status-item-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e4e4e7;
+        }
+
+        .status-item-value.online {
+            color: #22c55e;
+        }
+
+        .status-item-value.offline {
+            color: #52525b;
+        }
+
+        /* ── Disabled state ── */
+        .disabled {
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #52525b;
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        .footer a {
+            color: #7dd3fc;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer a:hover {
+            color: #38bdf8;
+        }
+
+        .unsupported-banner {
+            display: none;
+            text-align: center;
+            padding: 1.25rem;
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            border-radius: 12px;
+            color: #fca5a5;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(24, 24, 27, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 0.9rem;
+            color: #e4e4e7;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 2rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .mode-group {
+                flex-direction: column;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h1>Configure Device</h1>
+        <p class="subtitle">Adjust settings in real-time over USB.</p>
+
+        <div id="unsupported" class="unsupported-banner">
+            Web Serial is not supported in this browser. Please use <strong>Chrome</strong> or <strong>Edge</strong> on
+            desktop.
+        </div>
+
+        <!-- Connect -->
+        <div class="connect-bar">
+            <div class="status-dot" id="status-dot"></div>
+            <button class="connect-btn connect" id="connect-btn" onclick="toggleConnection()">
+                Connect
+            </button>
+        </div>
+
+        <!-- Sensitivity -->
+        <div class="section disabled" id="sensitivity-section">
+            <div class="section-title">Sensitivity</div>
+
+            <div class="slider-group">
+                <div class="slider-header">
+                    <span class="slider-label">Air Mouse</span>
+                    <span class="slider-value" id="air-value">1800</span>
+                </div>
+                <input type="range" id="air-slider" min="200" max="5000" step="50" value="1800">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header">
+                    <span class="slider-label">Trackpad</span>
+                    <span class="slider-value" id="tpad-value">6.0</span>
+                </div>
+                <input type="range" id="tpad-slider" min="1" max="20" step="0.5" value="6">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header">
+                    <span class="slider-label">Scroll Speed</span>
+                    <span class="slider-value" id="scroll-value">3.0</span>
+                </div>
+                <input type="range" id="scroll-slider" min="1" max="20" step="0.5" value="3">
+            </div>
+        </div>
+
+        <!-- Mode -->
+        <div class="section disabled" id="mode-section">
+            <div class="section-title">Mode</div>
+            <div class="mode-group">
+                <button class="mode-btn active" data-mode="0" onclick="setMode(0)">Air Mouse</button>
+                <button class="mode-btn" data-mode="1" onclick="setMode(1)">Trackpad</button>
+                <button class="mode-btn" data-mode="2" onclick="setMode(2)">Media</button>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="section disabled" id="status-section">
+            <div class="section-title">Status</div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-item-label">Controller 1</div>
+                    <div class="status-item-value offline" id="c0-status">Disconnected</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-item-label">Controller 2</div>
+                    <div class="status-item-value offline" id="c1-status">Disconnected</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-item-label">Active Slot</div>
+                    <div class="status-item-value" id="slot-status">--</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-item-label">Firmware</div>
+                    <div class="status-item-value" id="fw-version">--</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <a href="index.html">Flash Firmware</a>
+        <a href="https://github.com/Delulu-Delilah/daydream-airmouse">GitHub</a>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ─── State ──────────────────────────────────────────────────────────
+        let port = null;
+        let reader = null;
+        let writer = null;
+        let readableStreamClosed = null;
+        let connected = false;
+        let statusPollTimer = null;
+        let sendDebounce = null;
+
+        // ─── DOM refs ───────────────────────────────────────────────────────
+        const connectBtn = document.getElementById('connect-btn');
+        const statusDot = document.getElementById('status-dot');
+        const sensitivitySection = document.getElementById('sensitivity-section');
+        const modeSection = document.getElementById('mode-section');
+        const statusSection = document.getElementById('status-section');
+
+        const airSlider = document.getElementById('air-slider');
+        const tpadSlider = document.getElementById('tpad-slider');
+        const scrollSlider = document.getElementById('scroll-slider');
+        const airValue = document.getElementById('air-value');
+        const tpadValue = document.getElementById('tpad-value');
+        const scrollValue = document.getElementById('scroll-value');
+
+        // ─── Connection ─────────────────────────────────────────────────────
+        async function toggleConnection() {
+            if (connected) {
+                await disconnect();
+            } else {
+                await connect();
+            }
+        }
+
+        async function connect() {
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+
+                const textDecoder = new TextDecoderStream();
+                readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+                reader = textDecoder.readable.getReader();
+
+                const textEncoder = new TextEncoderStream();
+                textEncoder.readable.pipeTo(port.writable);
+                writer = textEncoder.writable.getWriter();
+
+                connected = true;
+                updateUI();
+
+                // Start reading
+                readLoop();
+
+                // Request initial config + status
+                await send('{"cmd":"get_config"}');
+                await send('{"cmd":"get_status"}');
+
+                // Poll status every 2s
+                statusPollTimer = setInterval(() => {
+                    send('{"cmd":"get_status"}');
+                }, 2000);
+
+                showToast('Connected');
+            } catch (e) {
+                console.error('Connect error:', e);
+                showToast('Connection failed');
+            }
+        }
+
+        async function disconnect() {
+            try {
+                if (statusPollTimer) clearInterval(statusPollTimer);
+                if (reader) { reader.cancel(); await readableStreamClosed.catch(() => { }); }
+                if (port) await port.close();
+            } catch (e) {
+                console.error('Disconnect error:', e);
+            }
+            port = null;
+            reader = null;
+            writer = null;
+            connected = false;
+            updateUI();
+            showToast('Disconnected');
+        }
+
+        // ─── Serial I/O ─────────────────────────────────────────────────────
+        async function send(msg) {
+            if (!writer) return;
+            try {
+                await writer.write(msg + '\n');
+            } catch (e) {
+                console.error('Send error:', e);
+                disconnect();
+            }
+        }
+
+        async function readLoop() {
+            let lineBuffer = '';
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    lineBuffer += value;
+
+                    let lines = lineBuffer.split('\n');
+                    lineBuffer = lines.pop(); // keep incomplete line
+
+                    for (const line of lines) {
+                        processLine(line.trim());
+                    }
+                }
+            } catch (e) {
+                // Reader cancelled on disconnect
+            }
+        }
+
+        function processLine(line) {
+            if (!line.startsWith('>')) return; // ignore debug logs
+            try {
+                const data = JSON.parse(line.substring(1));
+                if (data.type === 'config') handleConfig(data);
+                if (data.type === 'status') handleStatus(data);
+            } catch (e) {
+                // ignore parse errors from partial lines
+            }
+        }
+
+        // ─── Handlers ───────────────────────────────────────────────────────
+        function handleConfig(data) {
+            airSlider.value = data.air;
+            tpadSlider.value = data.tpad;
+            scrollSlider.value = data.scroll;
+            airValue.textContent = Math.round(data.air);
+            tpadValue.textContent = parseFloat(data.tpad).toFixed(1);
+            scrollValue.textContent = parseFloat(data.scroll).toFixed(1);
+
+            if (data.version) {
+                document.getElementById('fw-version').textContent = 'v' + data.version;
+            }
+        }
+
+        function handleStatus(data) {
+            // Mode
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.mode) === data.mode);
+            });
+
+            // Controllers
+            const c0 = document.getElementById('c0-status');
+            const c1 = document.getElementById('c1-status');
+            c0.textContent = data.c0 ? 'Connected' : 'Disconnected';
+            c0.className = 'status-item-value ' + (data.c0 ? 'online' : 'offline');
+            c1.textContent = data.c1 ? 'Connected' : 'Disconnected';
+            c1.className = 'status-item-value ' + (data.c1 ? 'online' : 'offline');
+
+            // Active slot
+            document.getElementById('slot-status').textContent = (data.slot + 1);
+        }
+
+        // ─── Slider events ──────────────────────────────────────────────────
+        function setupSlider(slider, display, key, formatter) {
+            slider.addEventListener('input', () => {
+                display.textContent = formatter(slider.value);
+            });
+            slider.addEventListener('change', () => {
+                display.textContent = formatter(slider.value);
+                sendConfigDebounced();
+            });
+        }
+
+        setupSlider(airSlider, airValue, 'air', v => Math.round(v));
+        setupSlider(tpadSlider, tpadValue, 'tpad', v => parseFloat(v).toFixed(1));
+        setupSlider(scrollSlider, scrollValue, 'scroll', v => parseFloat(v).toFixed(1));
+
+        function sendConfigDebounced() {
+            clearTimeout(sendDebounce);
+            sendDebounce = setTimeout(() => {
+                const cmd = {
+                    cmd: 'set_config',
+                    air: parseFloat(airSlider.value),
+                    tpad: parseFloat(tpadSlider.value),
+                    scroll: parseFloat(scrollSlider.value)
+                };
+                send(JSON.stringify(cmd));
+                showToast('Settings saved');
+            }, 300);
+        }
+
+        // ─── Mode switching ─────────────────────────────────────────────────
+        function setMode(mode) {
+            send(JSON.stringify({ cmd: 'set_mode', mode }));
+        }
+
+        // ─── UI helpers ─────────────────────────────────────────────────────
+        function updateUI() {
+            if (connected) {
+                connectBtn.textContent = 'Disconnect';
+                connectBtn.className = 'connect-btn disconnect';
+                statusDot.classList.add('connected');
+                sensitivitySection.classList.remove('disabled');
+                modeSection.classList.remove('disabled');
+                statusSection.classList.remove('disabled');
+            } else {
+                connectBtn.textContent = 'Connect';
+                connectBtn.className = 'connect-btn connect';
+                statusDot.classList.remove('connected');
+                sensitivitySection.classList.add('disabled');
+                modeSection.classList.add('disabled');
+                statusSection.classList.add('disabled');
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // Browser check
+        if (!('serial' in navigator)) {
+            document.getElementById('unsupported').style.display = 'block';
+            connectBtn.disabled = true;
+            connectBtn.style.opacity = '0.3';
+        }
+    </script>
+</body>
+
+</html>
