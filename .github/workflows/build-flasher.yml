@@ -10,105 +10,107 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-            name: macOS
-            artifact: "Daydream Air Mouse Flasher.app"
-            zip_name: "DaydreamFlasher-macOS.zip"
-            build_cmd: |
-              cd flasher
-              python3 -m venv venv
-              source venv/bin/activate
-              pip install -r requirements.txt
-              pyinstaller \
-                --name "Daydream Air Mouse Flasher" \
-                --onedir --windowed --noconfirm --clean \
-                --add-data "firmware:firmware" \
-                --hidden-import customtkinter \
-                --hidden-import esptool \
-                --hidden-import serial \
-                --hidden-import serial.tools \
-                --hidden-import serial.tools.list_ports \
-                --collect-all customtkinter \
-                --collect-all esptool \
-                flasher.py
-              cd dist
-              zip -r "../../DaydreamFlasher-macOS.zip" "Daydream Air Mouse Flasher.app"
-
-          - os: windows-latest
-            name: Windows
-            artifact: "Daydream Air Mouse Flasher.exe"
-            zip_name: "DaydreamFlasher-Windows.zip"
-            build_cmd: |
-              cd flasher
-              python -m venv venv
-              venv\Scripts\activate
-              pip install -r requirements.txt
-              pyinstaller --name "Daydream Air Mouse Flasher" --onedir --windowed --noconfirm --clean --add-data "firmware;firmware" --hidden-import customtkinter --hidden-import esptool --hidden-import serial --hidden-import serial.tools --hidden-import serial.tools.list_ports --collect-all customtkinter --collect-all esptool flasher.py
-              cd dist
-              Compress-Archive -Path "Daydream Air Mouse Flasher" -DestinationPath "../../DaydreamFlasher-Windows.zip"
-
-          - os: ubuntu-latest
-            name: Linux
-            artifact: "daydream-air-mouse-flasher"
-            zip_name: "DaydreamFlasher-Linux.tar.gz"
-            build_cmd: |
-              cd flasher
-              python3 -m venv venv
-              source venv/bin/activate
-              pip install -r requirements.txt
-              pyinstaller \
-                --name "daydream-air-mouse-flasher" \
-                --onedir --noconfirm --clean \
-                --add-data "firmware:firmware" \
-                --hidden-import customtkinter \
-                --hidden-import esptool \
-                --hidden-import serial \
-                --hidden-import serial.tools \
-                --hidden-import serial.tools.list_ports \
-                --collect-all customtkinter \
-                --collect-all esptool \
-                flasher.py
-              cd dist
-              tar -czf "../../DaydreamFlasher-Linux.tar.gz" "daydream-air-mouse-flasher"
-
-    runs-on: ${{ matrix.os }}
-    name: Build (${{ matrix.name }})
-
+  build-macos:
+    runs-on: macos-latest
+    name: Build (macOS)
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
+      - name: Install dependencies
+        run: pip install -r flasher/requirements.txt
       - name: Build flasher
-        shell: bash
-        run: ${{ matrix.build_cmd }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        run: |
+          cd flasher
+          pyinstaller \
+            --name "Daydream Air Mouse Flasher" \
+            --onedir --windowed --noconfirm --clean \
+            --add-data "firmware:firmware" \
+            --hidden-import customtkinter \
+            --hidden-import esptool \
+            --hidden-import serial \
+            --hidden-import serial.tools \
+            --hidden-import serial.tools.list_ports \
+            --collect-all customtkinter \
+            --collect-all esptool \
+            flasher.py
+      - name: Package
+        run: |
+          cd flasher/dist
+          zip -r "../../DaydreamFlasher-macOS.zip" "Daydream Air Mouse Flasher.app"
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.zip_name }}
-          path: ${{ matrix.zip_name }}
+          name: DaydreamFlasher-macOS
+          path: DaydreamFlasher-macOS.zip
+
+  build-windows:
+    runs-on: windows-latest
+    name: Build (Windows)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r flasher/requirements.txt
+      - name: Build flasher
+        run: |
+          cd flasher
+          pyinstaller --name "Daydream Air Mouse Flasher" --onedir --windowed --noconfirm --clean --add-data "firmware;firmware" --hidden-import customtkinter --hidden-import esptool --hidden-import serial --hidden-import serial.tools --hidden-import serial.tools.list_ports --collect-all customtkinter --collect-all esptool flasher.py
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path "flasher/dist/Daydream Air Mouse Flasher" -DestinationPath "DaydreamFlasher-Windows.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DaydreamFlasher-Windows
+          path: DaydreamFlasher-Windows.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    name: Build (Linux)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r flasher/requirements.txt
+      - name: Build flasher
+        run: |
+          cd flasher
+          pyinstaller \
+            --name "daydream-air-mouse-flasher" \
+            --onedir --noconfirm --clean \
+            --add-data "firmware:firmware" \
+            --hidden-import customtkinter \
+            --hidden-import esptool \
+            --hidden-import serial \
+            --hidden-import serial.tools \
+            --hidden-import serial.tools.list_ports \
+            --collect-all customtkinter \
+            --collect-all esptool \
+            flasher.py
+      - name: Package
+        run: |
+          cd flasher/dist
+          tar -czf "../../DaydreamFlasher-Linux.tar.gz" "daydream-air-mouse-flasher"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DaydreamFlasher-Linux
+          path: DaydreamFlasher-Linux.tar.gz
 
   release:
-    needs: build
+    needs: [build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-
+      - uses: actions/download-artifact@v4
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            DaydreamFlasher-macOS.zip/DaydreamFlasher-macOS.zip
-            DaydreamFlasher-Windows.zip/DaydreamFlasher-Windows.zip
-            DaydreamFlasher-Linux.tar.gz/DaydreamFlasher-Linux.tar.gz
+            DaydreamFlasher-macOS/DaydreamFlasher-macOS.zip
+            DaydreamFlasher-Windows/DaydreamFlasher-Windows.zip
+            DaydreamFlasher-Linux/DaydreamFlasher-Linux.tar.gz
           generate_release_notes: true
