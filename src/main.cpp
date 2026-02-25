@@ -41,9 +41,17 @@
 
 #if defined(BOARD_XIAO_ESP32S3)
 #include "../boards/xiao_esp32s3.h"
-// ── Add new boards here ──
-// #elif defined(BOARD_ESP32S3_DEVKIT)
-//   #include "../boards/esp32s3_devkit.h"
+// ── Community boards (untested) ──
+#elif defined(BOARD_ESP32S3_DEVKITC)
+#include "../boards/esp32s3_devkitc.h"
+#elif defined(BOARD_ADAFRUIT_QTPY_ESP32S3)
+#include "../boards/adafruit_qtpy_esp32s3.h"
+#elif defined(BOARD_LOLIN_S3_MINI)
+#include "../boards/lolin_s3_mini.h"
+#elif defined(BOARD_UM_TINYS3)
+#include "../boards/um_tinys3.h"
+#elif defined(BOARD_WAVESHARE_ESP32S3_ZERO)
+#include "../boards/waveshare_esp32s3_zero.h"
 #else
 // Default: XIAO ESP32-S3
 #include "../boards/xiao_esp32s3.h"
@@ -916,7 +924,9 @@ void setup() {
   Serial.println();
 
   // LED
-  pinMode(LED_PIN, OUTPUT);
+  if (LED_PIN >= 0) {
+    pinMode(LED_PIN, OUTPUT);
+  }
   ledSetBreathing();
 
   // Boot button
