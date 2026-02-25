@@ -27,7 +27,6 @@
  * BLE bonding + explicit CCCD descriptor writes.
  */
 
-#include "USBHIDBattery.h"
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 #include <Preferences.h>
@@ -95,9 +94,6 @@ static NimBLEUUID SERVICE_UUID("0000fe55-0000-1000-8000-00805f9b34fb");
 static NimBLEUUID CHAR_UUID("00000001-1000-1000-8000-00805f9b34fb");
 static NimBLEUUID CCCD_UUID("00002902-0000-1000-8000-00805f9b34fb");
 
-static NimBLEUUID BATTERY_SERVICE_UUID((uint16_t)0x180f);
-static NimBLEUUID BATTERY_CHAR_UUID((uint16_t)0x2a19);
-
 static const uint8_t BTN_CLICK = 0x01;
 static const uint8_t BTN_HOME = 0x02;
 static const uint8_t BTN_APP = 0x04;
@@ -118,10 +114,9 @@ struct DaydreamState {
 
 struct ControllerSlot {
   NimBLEClient *client = nullptr;
+  NimBLEAdvertisedDevice *device = nullptr;
   bool connected = false;
   bool doConnect = false;
-  bool connectingInProgress = false;
-  volatile int connectResult = 0; // 0=pending, 1=success, -1=fail
   bool notificationsWorking = false;
   unsigned long connectTime = 0;
   unsigned long notifyCount = 0;
@@ -151,28 +146,19 @@ struct ControllerSlot {
 
   NimBLEAddress address;
   bool hasAddress = false;
-
-  int batteryLevel = -1;               // -1 means unknown
-  unsigned long scrollRepeatTimer = 0; // rate limit continuous scrolling
-
-  // Track combo states per-slot to avoid interference
-  bool switchComboFired = false;
-  bool sensComboFired = false;
 };
-
-static portMUX_TYPE stateMux = portMUX_INITIALIZER_UNLOCKED;
-static unsigned long globalMediaReleaseTimer = 0;
 
 // ─── Globals ────────────────────────────────────────────────────────────────
 
 USBHIDMouse Mouse;
 USBHIDConsumerControl ConsumerControl;
-USBHIDBattery BatteryReport;
 Preferences prefs;
 
 static ControllerSlot slots[MAX_CONTROLLERS];
 static int activeSlot = 0;
 static bool scanning = false;
+static NimBLEAddress knownAddresses[MAX_CONTROLLERS];
+static int knownAddressCount = 0;
 
 static volatile bool bootBtnPressed = false;
 static unsigned long lastBootBtnTime = 0;
@@ -188,13 +174,6 @@ static LEDState ledState = LED_STATE_OFF;
 static unsigned long ledLastUpdate = 0;
 static float ledBreathPhase = 0;
 
-// Flash state tracking
-static int ledFlashesRemaining = 0;
-static int ledFlashOnMs = 100;
-static int ledFlashOffMs = 100;
-static bool ledFlashIsOn = false;
-static LEDState ledStateAfterFlash = LED_STATE_OFF;
-
 // Auto-sleep
 static unsigned long lastControllerActivity = 0;
 static bool sleepMode = false;
@@ -205,14 +184,11 @@ void loadPreferences() {
   prefs.begin("ddmouse", true); // read-only
   airMouseSensitivity = prefs.getFloat("airSens", 1800.0f);
   trackpadSensitivity = prefs.getFloat("tpadSens", 6.0f);
-  scrollSensitivity = prefs.getFloat("scrollSens", 8.0f);
+  scrollSensitivity = prefs.getFloat("scrollSens", 3.0f);
   prefs.end();
   Serial.printf("[PREF] Loaded: air=%.0f tpad=%.1f scroll=%.1f\n",
                 airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
 }
-
-static unsigned long lastSensChangeTime = 0;
-static bool pendingPrefsSave = false;
 
 void savePreferences() {
   prefs.begin("ddmouse", false);
@@ -224,74 +200,36 @@ void savePreferences() {
                 airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
 }
 
-void deferPreferencesSave() {
-  pendingPrefsSave = true;
-  lastSensChangeTime = millis();
-}
-
 // ─── LED Helpers ────────────────────────────────────────────────────────────
 
-void ledFlash(int count, int onMs = 100, int offMs = 100,
-              int forceAfterState = -1) {
-  if (forceAfterState >= 0) {
-    ledStateAfterFlash = (LEDState)forceAfterState;
-  } else if (ledState != LED_STATE_FLASH) {
-    ledStateAfterFlash = ledState;
+void ledFlash(int count, int onMs = 100, int offMs = 100) {
+  if (LED_PIN < 0)
+    return;
+  for (int i = 0; i < count; i++) {
+    LED_ON();
+    delay(onMs);
+    LED_OFF();
+    delay(offMs);
   }
-  ledState = LED_STATE_FLASH;
-  ledFlashesRemaining = count;
-  ledFlashOnMs = onMs;
-  ledFlashOffMs = offMs;
-  ledFlashIsOn = true;
-  ledLastUpdate = millis();
-  LED_ON();
 }
 
-// Non-blocking LED update (call from loop)
-void ledUpdate() {
+// Non-blocking breathing LED (call from loop)
+void ledUpdateBreathing() {
+  if (LED_PIN < 0 || ledState != LED_STATE_BREATHING)
+    return;
   unsigned long now = millis();
+  if (now - ledLastUpdate < 16)
+    return; // ~60fps
+  ledLastUpdate = now;
 
-  if (ledState == LED_STATE_FLASH) {
-    if (ledFlashesRemaining > 0) {
-      if (ledFlashIsOn && (now - ledLastUpdate >= ledFlashOnMs)) {
-        ledFlashIsOn = false;
-        ledLastUpdate = now;
-        LED_OFF();
-      } else if (!ledFlashIsOn && (now - ledLastUpdate >= ledFlashOffMs)) {
-        ledFlashesRemaining--;
-        if (ledFlashesRemaining > 0) {
-          ledFlashIsOn = true;
-          ledLastUpdate = now;
-          LED_ON();
-        } else {
-          ledState = ledStateAfterFlash;
-          if (ledState == LED_STATE_SOLID)
-            LED_ON();
-          else if (ledState == LED_STATE_OFF)
-            LED_OFF();
-        }
-      }
-    } else {
-      ledState = ledStateAfterFlash;
-      if (ledState == LED_STATE_SOLID)
-        LED_ON();
-      else if (ledState == LED_STATE_OFF)
-        LED_OFF();
-    }
-  } else if (ledState == LED_STATE_BREATHING) {
-    if (now - ledLastUpdate < 16)
-      return; // ~60fps
-    ledLastUpdate = now;
+  ledBreathPhase += 0.04f;
+  if (ledBreathPhase > 2.0f * PI)
+    ledBreathPhase -= 2.0f * PI;
 
-    ledBreathPhase += 0.04f;
-    if (ledBreathPhase > 2.0f * PI)
-      ledBreathPhase -= 2.0f * PI;
-
-    // Sine wave breathing: 0→255→0
-    float brightness = (sinf(ledBreathPhase) + 1.0f) * 0.5f;
-    int pwm = (int)(brightness * 255.0f);
-    analogWrite(LED_PIN, LED_INVERT ? (255 - pwm) : pwm);
-  }
+  // Sine wave breathing: 0→255→0
+  float brightness = (sinf(ledBreathPhase) + 1.0f) * 0.5f;
+  int pwm = (int)(brightness * 255.0f);
+  analogWrite(LED_PIN, LED_INVERT ? (255 - pwm) : pwm);
 }
 
 void ledSetBreathing() {
@@ -321,21 +259,37 @@ void ledIndicateMode(DeviceMode mode) {
     ledFlash(3, 60, 60);
     break;
   }
+  // Restore solid if connected
+  bool anyConnected = false;
+  for (int i = 0; i < MAX_CONTROLLERS; i++) {
+    if (slots[i].connected) {
+      anyConnected = true;
+      break;
+    }
+  }
+  if (anyConnected)
+    ledSetSolid();
+  else
+    ledSetBreathing();
 }
 
 void ledIndicateSlot(int slot) {
-  ledFlash(slot + 1, 150, 150, LED_STATE_SOLID);
+  ledFlash(slot + 1, 150, 150);
+  ledSetSolid();
 }
 
 void ledIndicateSensitivity(bool increase) {
   // Quick double-flash for up, triple for down
-  ledFlash(increase ? 2 : 3, 40, 40, LED_STATE_SOLID);
+  ledFlash(increase ? 2 : 3, 40, 40);
+  ledSetSolid();
 }
 
 void ledIndicateBattery(int level) {
   // level 0-3: flash count indicates battery (0=empty, 3=full)
   int flashes = constrain(level, 1, 4);
+  delay(300);
   ledFlash(flashes, 200, 200);
+  delay(300);
 }
 
 // ─── Boot Button ISR ────────────────────────────────────────────────────────
@@ -345,7 +299,6 @@ void IRAM_ATTR bootBtnISR() { bootBtnPressed = true; }
 // ─── Packet Parser ──────────────────────────────────────────────────────────
 
 static int16_t signExtend13(int raw) {
-  raw &= 0x1FFF; // Prevent garbage bits >12 from breaking sign extension
   if (raw & 0x1000)
     raw |= 0xE000;
   return (int16_t)raw;
@@ -402,41 +355,40 @@ void parsePacket(const uint8_t *data, size_t len, DaydreamState &state) {
 
 // ─── BLE Notification Callbacks ─────────────────────────────────────────────
 
-void updateBatteryReport(int slotIdx) {
-  if (slotIdx == activeSlot && slots[slotIdx].batteryLevel >= 0) {
-    BatteryReport.setBatteryLevel((uint8_t)slots[slotIdx].batteryLevel);
-  }
-}
-
-static void notifyCallback(NimBLERemoteCharacteristic *pChar, uint8_t *pData,
-                           size_t length, bool isNotify, int slotIdx) {
-  ControllerSlot &s = slots[slotIdx];
+void notifyCallbackSlot0(NimBLERemoteCharacteristic *pChar, uint8_t *data,
+                         size_t length, bool isNotify) {
+  ControllerSlot &s = slots[0];
   if (length >= 20) {
-    portENTER_CRITICAL(&stateMux);
     s.previous = s.current;
-    parsePacket(pData, length, s.current);
+    parsePacket(data, length, s.current);
     s.stateUpdated = true;
-    portEXIT_CRITICAL(&stateMux);
-
     s.lastNotifyTime = millis();
     s.notifyCount++;
     lastControllerActivity = millis();
     if (!s.notificationsWorking) {
       s.notificationsWorking = true;
-      Serial.printf("[SLOT %d] ✓ First packet (%lu ms)\n", slotIdx,
+      Serial.printf("[SLOT 0] ✓ First packet (%lu ms)\n",
                     millis() - s.connectTime);
     }
   }
 }
 
-void notifyCallbackSlot0(NimBLERemoteCharacteristic *pChar, uint8_t *data,
-                         size_t length, bool isNotify) {
-  notifyCallback(pChar, data, length, isNotify, 0);
-}
-
 void notifyCallbackSlot1(NimBLERemoteCharacteristic *pChar, uint8_t *data,
                          size_t length, bool isNotify) {
-  notifyCallback(pChar, data, length, isNotify, 1);
+  ControllerSlot &s = slots[1];
+  if (length >= 20) {
+    s.previous = s.current;
+    parsePacket(data, length, s.current);
+    s.stateUpdated = true;
+    s.lastNotifyTime = millis();
+    s.notifyCount++;
+    lastControllerActivity = millis();
+    if (!s.notificationsWorking) {
+      s.notificationsWorking = true;
+      Serial.printf("[SLOT 1] ✓ First packet (%lu ms)\n",
+                    millis() - s.connectTime);
+    }
+  }
 }
 
 typedef void (*NotifyCallback)(NimBLERemoteCharacteristic *, uint8_t *, size_t,
@@ -444,31 +396,7 @@ typedef void (*NotifyCallback)(NimBLERemoteCharacteristic *, uint8_t *, size_t,
 static NotifyCallback slotCallbacks[MAX_CONTROLLERS] = {notifyCallbackSlot0,
                                                         notifyCallbackSlot1};
 
-static void batteryNotifyCallback(NimBLERemoteCharacteristic *pChar,
-                                  uint8_t *pData, size_t length, bool isNotify,
-                                  int slotIdx) {
-  if (slotIdx < 0 || slotIdx >= MAX_CONTROLLERS)
-    return;
-  if (length > 0) {
-    slots[slotIdx].batteryLevel = pData[0];
-    updateBatteryReport(slotIdx);
-  }
-}
-
-void batteryNotifyCallbackSlot0(NimBLERemoteCharacteristic *pChar,
-                                uint8_t *data, size_t length, bool isNotify) {
-  batteryNotifyCallback(pChar, data, length, isNotify, 0);
-}
-
-void batteryNotifyCallbackSlot1(NimBLERemoteCharacteristic *pChar,
-                                uint8_t *data, size_t length, bool isNotify) {
-  batteryNotifyCallback(pChar, data, length, isNotify, 1);
-}
-
-static NotifyCallback batteryCallbacks[MAX_CONTROLLERS] = {
-    batteryNotifyCallbackSlot0, batteryNotifyCallbackSlot1};
-
-// ─── BLE Client Callbacks ─────────────────────────────────────────────
+// ─── BLE Client Callbacks ───────────────────────────────────────────────────
 
 class ClientCallbacks : public NimBLEClientCallbacks {
 public:
@@ -482,9 +410,6 @@ public:
     s.notifyCount = 0;
     s.connectTime = millis();
     lastControllerActivity = millis();
-    s.stateUpdated = false;
-    s.hasRefOrientation = false;
-
     Serial.printf("[SLOT %d] Connected!\n", slotIndex);
     ledSetSolid();
   }
@@ -529,11 +454,9 @@ static ClientCallbacks *clientCallbacks[MAX_CONTROLLERS] = {nullptr, nullptr};
 
 // ─── BLE Scan Callbacks ─────────────────────────────────────────────────────
 
-bool isAddressKnown(NimBLEAddress addr) {
-  for (int i = 0; i < MAX_CONTROLLERS; i++) {
-    // Only return true if the slot is actually connected
-    // This allows re-discovering a previously known but disconnected controller
-    if (slots[i].hasAddress && slots[i].address == addr && slots[i].connected)
+bool isAddressKnown(const NimBLEAddress &addr) {
+  for (int i = 0; i < knownAddressCount; i++) {
+    if (knownAddresses[i] == addr)
       return true;
   }
   return false;
@@ -568,9 +491,14 @@ class ScanCallbacks : public NimBLEAdvertisedDeviceCallbacks {
       Serial.printf("[SLOT %d] >>> Daydream found: %s\n", slot,
                     addr.toString().c_str());
 
+      slots[slot].device = advertisedDevice;
       slots[slot].doConnect = true;
       slots[slot].address = addr;
       slots[slot].hasAddress = true;
+
+      if (knownAddressCount < MAX_CONTROLLERS) {
+        knownAddresses[knownAddressCount++] = addr;
+      }
 
       int connectedOrPending = 0;
       for (int i = 0; i < MAX_CONTROLLERS; i++) {
@@ -588,13 +516,13 @@ class ScanCallbacks : public NimBLEAdvertisedDeviceCallbacks {
 static ScanCallbacks scanCB;
 
 // ─── BLE Connect ────────────────────────────────────────────────────────────
-// This runs on a background FreeRTOS task so the main loop stays responsive.
 
-void connectToControllerTask(void *param) {
-  int slotIdx = (int)(intptr_t)param;
+bool connectToController(int slotIdx) {
   ControllerSlot &s = slots[slotIdx];
+  if (!s.device)
+    return false;
 
-  Serial.printf("[SLOT %d] Connecting (bg task)...\n", slotIdx);
+  Serial.printf("[SLOT %d] Connecting...\n", slotIdx);
 
   if (!s.client) {
     s.client = NimBLEDevice::createClient();
@@ -605,35 +533,26 @@ void connectToControllerTask(void *param) {
     s.client->setConnectTimeout(10);
   }
 
-  if (!s.client->connect(s.address, false)) {
+  if (!s.client->connect(s.device)) {
     Serial.printf("[SLOT %d] Connection failed!\n", slotIdx);
-    s.connectResult = -1;
-    s.connectingInProgress = false;
-    vTaskDelete(NULL);
-    return;
+    return false;
   }
 
   NimBLERemoteService *pService = s.client->getService(SERVICE_UUID);
   if (!pService) {
     s.client->disconnect();
-    s.connectResult = -1;
-    s.connectingInProgress = false;
-    vTaskDelete(NULL);
-    return;
+    return false;
   }
 
   NimBLERemoteCharacteristic *pChar = pService->getCharacteristic(CHAR_UUID);
   if (!pChar) {
     s.client->disconnect();
-    s.connectResult = -1;
-    s.connectingInProgress = false;
-    vTaskDelete(NULL);
-    return;
+    return false;
   }
 
   Serial.printf("[SLOT %d] Requesting bonding...\n", slotIdx);
   s.client->secureConnection();
-  vTaskDelay(pdMS_TO_TICKS(500));
+  delay(500);
 
   if (pChar->canNotify()) {
     if (!pChar->subscribe(true, slotCallbacks[slotIdx])) {
@@ -646,19 +565,16 @@ void connectToControllerTask(void *param) {
     }
   } else {
     s.client->disconnect();
-    s.connectResult = -1;
-    s.connectingInProgress = false;
-    vTaskDelete(NULL);
-    return;
+    return false;
   }
 
   unsigned long waitStart = millis();
   while (!s.notificationsWorking && millis() - waitStart < 3000)
-    vTaskDelay(pdMS_TO_TICKS(50));
+    delay(50);
 
   if (!s.notificationsWorking) {
     pChar->unsubscribe();
-    vTaskDelay(pdMS_TO_TICKS(200));
+    delay(200);
     NimBLERemoteDescriptor *cccd = pChar->getDescriptor(CCCD_UUID);
     if (cccd) {
       uint8_t enableNotify[] = {0x01, 0x00};
@@ -667,45 +583,16 @@ void connectToControllerTask(void *param) {
     pChar->subscribe(true, slotCallbacks[slotIdx]);
     waitStart = millis();
     while (!s.notificationsWorking && millis() - waitStart < 3000)
-      vTaskDelay(pdMS_TO_TICKS(50));
+      delay(50);
   }
 
   if (s.notificationsWorking) {
-    Serial.printf("[SLOT %d] Data stream active!\n", slotIdx);
+    Serial.printf("[SLOT %d] ✓ Data stream active!\n", slotIdx);
   } else {
-    Serial.printf("[SLOT %d] No data\n", slotIdx);
+    Serial.printf("[SLOT %d] ✗ No data\n", slotIdx);
   }
 
-  // Discover Battery Service
-  NimBLERemoteService *pBatService = s.client->getService(BATTERY_SERVICE_UUID);
-  if (pBatService) {
-    NimBLERemoteCharacteristic *pBatChar =
-        pBatService->getCharacteristic(BATTERY_CHAR_UUID);
-    if (pBatChar && pBatChar->canNotify()) {
-      pBatChar->subscribe(true, batteryCallbacks[slotIdx], false);
-      Serial.printf("[SLOT %d] Subscribed to battery notifications\n", slotIdx);
-    } else {
-      Serial.printf("[SLOT %d] Battery char missing or cannot notify\n",
-                    slotIdx);
-    }
-  } else {
-    Serial.printf("[SLOT %d] Battery service not found\n", slotIdx);
-  }
-
-  s.connectResult = 1;
-  s.connectingInProgress = false;
-  vTaskDelete(NULL);
-}
-
-void startConnectTask(int slotIdx) {
-  slots[slotIdx].connectingInProgress = true;
-  slots[slotIdx].connectResult = 0;
-  xTaskCreatePinnedToCore(connectToControllerTask, "bleConn", 8192,
-                          (void *)(intptr_t)slotIdx,
-                          1, // priority
-                          NULL,
-                          0 // run on core 0 (NimBLE's core)
-  );
+  return true;
 }
 
 // ─── BLE Scan Start ─────────────────────────────────────────────────────────
@@ -742,17 +629,16 @@ void startScan() {
 
 // ─── Air Mouse Movement ─────────────────────────────────────────────────────
 
-void processAirMouse(ControllerSlot &s, const DaydreamState &c,
-                     const DaydreamState &p) {
+void processAirMouse(ControllerSlot &s) {
   if (!s.hasRefOrientation) {
-    s.refXOri = c.xOri;
-    s.refYOri = c.yOri;
+    s.refXOri = s.current.xOri;
+    s.refYOri = s.current.yOri;
     s.hasRefOrientation = true;
     return;
   }
 
-  float deltaYaw = c.yOri - p.yOri;
-  float deltaPitch = c.xOri - p.xOri;
+  float deltaYaw = s.current.yOri - s.previous.yOri;
+  float deltaPitch = s.current.xOri - s.previous.xOri;
 
   if (fabsf(deltaYaw) > 1.0f)
     deltaYaw = 0;
@@ -773,20 +659,18 @@ void processAirMouse(ControllerSlot &s, const DaydreamState &c,
   int8_t dy = (int8_t)constrain((int)s.smoothDy, -127, 127);
 
   int8_t scroll = 0;
-  // Note: (0, 0) is treated as "not touching" intentionally, as the Daydream
-  // protocol encodes the lack of touch as literal zeroes.
-  bool isTouching = (c.xTouch > 0.01f || c.yTouch > 0.01f);
+  bool isTouching = (s.current.xTouch > 0.01f || s.current.yTouch > 0.01f);
 
   if (isTouching) {
     if (s.wasTouching) {
-      float deltaScrollY = (c.yTouch - s.prevTouchY);
+      float deltaScrollY = (s.current.yTouch - s.prevTouchY);
       if (fabsf(deltaScrollY) > SCROLL_DEADZONE) {
         scroll = (int8_t)constrain(
             (int)(-deltaScrollY * 255.0f * scrollSensitivity), -127, 127);
       }
     }
-    s.prevTouchX = c.xTouch;
-    s.prevTouchY = c.yTouch;
+    s.prevTouchX = s.current.xTouch;
+    s.prevTouchY = s.current.yTouch;
     s.wasTouching = true;
   } else {
     s.wasTouching = false;
@@ -798,13 +682,13 @@ void processAirMouse(ControllerSlot &s, const DaydreamState &c,
 
 // ─── Trackpad Mode ──────────────────────────────────────────────────────────
 
-void processTrackpad(ControllerSlot &s, const DaydreamState &c) {
-  bool isTouching = (c.xTouch > 0.01f || c.yTouch > 0.01f);
+void processTrackpad(ControllerSlot &s) {
+  bool isTouching = (s.current.xTouch > 0.01f || s.current.yTouch > 0.01f);
 
   if (isTouching) {
     if (s.wasTouching) {
-      float deltaX = (c.xTouch - s.prevTouchX) * 255.0f;
-      float deltaY = (c.yTouch - s.prevTouchY) * 255.0f;
+      float deltaX = (s.current.xTouch - s.prevTouchX) * 255.0f;
+      float deltaY = (s.current.yTouch - s.prevTouchY) * 255.0f;
 
       float fx = deltaX * trackpadSensitivity;
       float fy = deltaY * trackpadSensitivity;
@@ -815,8 +699,8 @@ void processTrackpad(ControllerSlot &s, const DaydreamState &c) {
       if (dx != 0 || dy != 0)
         Mouse.move(dx, dy, 0);
     }
-    s.prevTouchX = c.xTouch;
-    s.prevTouchY = c.yTouch;
+    s.prevTouchX = s.current.xTouch;
+    s.prevTouchY = s.current.yTouch;
     s.wasTouching = true;
   } else {
     s.wasTouching = false;
@@ -825,13 +709,13 @@ void processTrackpad(ControllerSlot &s, const DaydreamState &c) {
 
 // ─── Media Mode Gestures ────────────────────────────────────────────────────
 
-void processMediaGestures(ControllerSlot &s, const DaydreamState &c) {
-  bool isTouching = (c.xTouch > 0.01f || c.yTouch > 0.01f);
+void processMediaGestures(ControllerSlot &s) {
+  bool isTouching = (s.current.xTouch > 0.01f || s.current.yTouch > 0.01f);
 
   if (isTouching) {
-    s.lastTouchX = c.xTouch;
+    s.lastTouchX = s.current.xTouch;
     if (!s.swipeActive) {
-      s.swipeStartX = c.xTouch;
+      s.swipeStartX = s.current.xTouch;
       s.swipeActive = true;
     }
   } else if (s.swipeActive) {
@@ -839,10 +723,10 @@ void processMediaGestures(ControllerSlot &s, const DaydreamState &c) {
 
     if (swipeDelta > SWIPE_THRESHOLD) {
       ConsumerControl.press(CONSUMER_CONTROL_SCAN_NEXT);
-      globalMediaReleaseTimer = millis() + 50;
+      ConsumerControl.release();
     } else if (swipeDelta < -SWIPE_THRESHOLD) {
       ConsumerControl.press(CONSUMER_CONTROL_SCAN_PREVIOUS);
-      globalMediaReleaseTimer = millis() + 50;
+      ConsumerControl.release();
     }
     s.swipeActive = false;
   }
@@ -850,29 +734,34 @@ void processMediaGestures(ControllerSlot &s, const DaydreamState &c) {
 
 // ─── Movement Dispatcher ────────────────────────────────────────────────────
 
-void processMovement(ControllerSlot &s, const DaydreamState &c,
-                     const DaydreamState &p) {
+void processMovement(ControllerSlot &s) {
+  if (!s.stateUpdated)
+    return;
+  s.stateUpdated = false;
+
   switch (currentMode) {
   case MODE_AIR_MOUSE:
-    processAirMouse(s, c, p);
+    processAirMouse(s);
     break;
   case MODE_TRACKPAD:
-    processTrackpad(s, c);
+    processTrackpad(s);
     break;
   case MODE_MEDIA:
-    processMediaGestures(s, c);
+    processMediaGestures(s);
     break;
   }
 }
 
 // ─── Controller Switch Combo ────────────────────────────────────────────────
 
-void checkSwitchCombo(ControllerSlot &s, const DaydreamState &c) {
-  bool comboHeld = c.appBtn && c.volDownBtn;
+static bool switchComboFired = false;
+
+void checkSwitchCombo(ControllerSlot &s) {
+  bool comboHeld = s.current.appBtn && s.current.volDownBtn;
   bool comboJustPressed = comboHeld && (!s.prevAppBtn || !s.prevVolDownBtn);
 
-  if (comboJustPressed && !s.switchComboFired) {
-    s.switchComboFired = true;
+  if (comboJustPressed && !switchComboFired) {
+    switchComboFired = true;
     int newSlot = (activeSlot + 1) % MAX_CONTROLLERS;
     if (slots[newSlot].connected) {
       activeSlot = newSlot;
@@ -882,69 +771,73 @@ void checkSwitchCombo(ControllerSlot &s, const DaydreamState &c) {
       ledFlash(5, 30, 30);
     }
   }
-  if (!c.appBtn && !c.volDownBtn) {
-    s.switchComboFired = false;
+  if (!s.current.appBtn && !s.current.volDownBtn) {
+    switchComboFired = false;
   }
 }
 
 // ─── Sensitivity Adjustment ─────────────────────────────────────────────────
 
-void checkSensitivityCombo(ControllerSlot &s, const DaydreamState &c) {
+static bool sensComboFired = false;
+
+void checkSensitivityCombo(ControllerSlot &s) {
   // Home + Vol Up = increase, Home + Vol Down = decrease
-  if (c.homeBtn && c.volUpBtn && !s.sensComboFired) {
-    s.sensComboFired = true;
+  if (s.current.homeBtn && s.current.volUpBtn && !sensComboFired) {
+    sensComboFired = true;
     float factor = 1.0f + SENSITIVITY_STEP;
-    airMouseSensitivity =
-        constrain(airMouseSensitivity * factor, 100.0f, 10000.0f);
-    trackpadSensitivity = constrain(trackpadSensitivity * factor, 0.5f, 50.0f);
-    scrollSensitivity = constrain(scrollSensitivity * factor, 0.5f, 50.0f);
+    airMouseSensitivity *= factor;
+    trackpadSensitivity *= factor;
+    scrollSensitivity *= factor;
     Serial.printf("[SENS] ↑ air=%.0f tpad=%.1f scroll=%.1f\n",
                   airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
-    deferPreferencesSave();
+    savePreferences();
     ledIndicateSensitivity(true);
-  } else if (c.homeBtn && c.volDownBtn && !c.appBtn && !s.sensComboFired) {
+  } else if (s.current.homeBtn && s.current.volDownBtn && !s.current.appBtn &&
+             !sensComboFired) {
     // Only Vol Down (without App) = sensitivity decrease
     // App+VolDown is the controller switch combo
-    s.sensComboFired = true;
+    sensComboFired = true;
     float factor = 1.0f - SENSITIVITY_STEP;
-    airMouseSensitivity =
-        constrain(airMouseSensitivity * factor, 100.0f, 10000.0f);
-    trackpadSensitivity = constrain(trackpadSensitivity * factor, 0.5f, 50.0f);
-    scrollSensitivity = constrain(scrollSensitivity * factor, 0.5f, 50.0f);
+    airMouseSensitivity = fmaxf(airMouseSensitivity * factor, 100.0f);
+    trackpadSensitivity = fmaxf(trackpadSensitivity * factor, 0.5f);
+    scrollSensitivity = fmaxf(scrollSensitivity * factor, 0.5f);
     Serial.printf("[SENS] ↓ air=%.0f tpad=%.1f scroll=%.1f\n",
                   airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
-    deferPreferencesSave();
+    savePreferences();
     ledIndicateSensitivity(false);
   }
-  if (!c.homeBtn) {
-    s.sensComboFired = false;
+  if (!s.current.homeBtn) {
+    sensComboFired = false;
   }
 }
 
 // ─── Button Processing ──────────────────────────────────────────────────────
 
-void processButtons(ControllerSlot &s, const DaydreamState &c) {
-  bool comboActive = (c.appBtn && c.volDownBtn);
-  bool sensActive = c.homeBtn && (c.volUpBtn || (c.volDownBtn && !c.appBtn));
+void processButtons(ControllerSlot &s) {
+  bool comboActive = s.current.appBtn && s.current.volDownBtn;
+  bool sensActive =
+      s.current.homeBtn &&
+      (s.current.volUpBtn || (s.current.volDownBtn && !s.current.appBtn));
 
   // ── Home Button ──
-  if (c.homeBtn && !s.prevHomeBtn) {
+  if (s.current.homeBtn && !s.prevHomeBtn) {
     s.homePressSince = millis();
     s.homeLongFired = false;
   }
 
-  if (c.homeBtn && !s.homeLongFired && !sensActive) {
+  if (s.current.homeBtn && !s.homeLongFired && !sensActive) {
     if (millis() - s.homePressSince >= HOME_LONG_PRESS_MS) {
       s.homeLongFired = true;
       s.hasRefOrientation = false;
       s.smoothDx = 0;
       s.smoothDy = 0;
       Serial.println("[MODE] Orientation recentered!");
-      ledFlash(4, 40, 40, LED_STATE_SOLID);
+      ledFlash(4, 40, 40);
+      ledSetSolid();
     }
   }
 
-  if (!c.homeBtn && s.prevHomeBtn && !s.homeLongFired && !sensActive) {
+  if (!s.current.homeBtn && s.prevHomeBtn && !s.homeLongFired && !sensActive) {
     int m = (int)currentMode + 1;
     if (m > MODE_MEDIA)
       m = MODE_AIR_MOUSE;
@@ -961,154 +854,54 @@ void processButtons(ControllerSlot &s, const DaydreamState &c) {
     ledIndicateMode(currentMode);
   }
 
-  checkSensitivityCombo(s, c);
+  // ── Sensitivity combo ──
+  checkSensitivityCombo(s);
 
   // ── Mode-specific buttons (skip combos) ──
   if (currentMode == MODE_MEDIA) {
-    if (c.clickBtn && !s.prevClickBtn) {
+    if (s.current.clickBtn && !s.prevClickBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_PLAY_PAUSE);
-      globalMediaReleaseTimer = millis() + 50;
+      ConsumerControl.release();
     }
-    if (!comboActive && !sensActive && c.appBtn && !s.prevAppBtn) {
+    if (!comboActive && !sensActive && s.current.appBtn && !s.prevAppBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_MUTE);
-      globalMediaReleaseTimer = millis() + 50;
+      ConsumerControl.release();
     }
-    if (!sensActive && c.volUpBtn && !s.prevVolUpBtn) {
+    if (!sensActive && s.current.volUpBtn && !s.prevVolUpBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
-      globalMediaReleaseTimer = millis() + 50;
+      ConsumerControl.release();
     }
-    if (!comboActive && !sensActive && c.volDownBtn && !s.prevVolDownBtn) {
+    if (!comboActive && !sensActive && s.current.volDownBtn &&
+        !s.prevVolDownBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_VOLUME_DECREMENT);
-      globalMediaReleaseTimer = millis() + 50;
+      ConsumerControl.release();
     }
   } else {
-    if (c.clickBtn && !s.prevClickBtn)
+    if (s.current.clickBtn && !s.prevClickBtn)
       Mouse.press(MOUSE_LEFT);
-    else if (!c.clickBtn && s.prevClickBtn)
+    else if (!s.current.clickBtn && s.prevClickBtn)
       Mouse.release(MOUSE_LEFT);
 
     if (!comboActive && !sensActive) {
       // App button = right click
-      if (c.appBtn && !s.prevAppBtn)
+      if (s.current.appBtn && !s.prevAppBtn)
         Mouse.press(MOUSE_RIGHT);
-      else if (!c.appBtn && s.prevAppBtn)
+      else if (!s.current.appBtn && s.prevAppBtn)
         Mouse.release(MOUSE_RIGHT);
 
       // Volume buttons = scroll (continuous while held)
-      if ((c.volUpBtn || c.volDownBtn) && millis() > s.scrollRepeatTimer) {
-        if (c.volUpBtn)
-          Mouse.move(0, 0, 1); // scroll up
-        if (c.volDownBtn)
-          Mouse.move(0, 0, -1);              // scroll down
-        s.scrollRepeatTimer = millis() + 50; // 50ms rate limit
-      }
+      if (s.current.volUpBtn)
+        Mouse.move(0, 0, 1); // scroll up
+      if (s.current.volDownBtn)
+        Mouse.move(0, 0, -1); // scroll down
     }
   }
 
-  s.prevClickBtn = c.clickBtn;
-  s.prevHomeBtn = c.homeBtn;
-  s.prevAppBtn = c.appBtn;
-  s.prevVolDownBtn = c.volDownBtn;
-  s.prevVolUpBtn = c.volUpBtn;
-}
-
-// ─── Serial Command Parser (Web Configurator) ──────────────────────────────
-// Newline-delimited JSON protocol. Responses prefixed with '>' to distinguish
-// from debug output. Browser dashboard filters lines starting with '>'.
-
-static char serialBuf[256];
-static int serialBufPos = 0;
-
-// Helper: extract a float value from a JSON-ish string like ..."key":123.4...
-static bool jsonFloat(const String &json, const char *key, float &out) {
-  String needle = String("\"") + key + "\":";
-  int idx = json.indexOf(needle);
-  if (idx < 0)
-    return false;
-  idx += needle.length();
-  out = json.substring(idx).toFloat();
-  return true;
-}
-
-// Helper: extract an int value
-static bool jsonInt(const String &json, const char *key, int &out) {
-  String needle = String("\"") + key + "\":";
-  int idx = json.indexOf(needle);
-  if (idx < 0)
-    return false;
-  idx += needle.length();
-  out = json.substring(idx).toInt();
-  return true;
-}
-
-void sendConfig() {
-  Serial.printf(">{\"type\":\"config\",\"air\":%.1f,\"tpad\":%.1f,\"scroll\":%."
-                "1f,\"version\":\"1.1\"}\n",
-                airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
-}
-
-void sendStatus() {
-  Serial.printf(
-      ">{\"type\":\"status\",\"mode\":%d,\"modeName\":\"%s\",\"slot\":%d,"
-      "\"c0\":%s,\"c1\":%s,\"sleep\":%s,\"c0_bat\":%d,\"c1_bat\":%d}\n",
-      (int)currentMode, modeNames[currentMode], activeSlot,
-      slots[0].connected ? "true" : "false",
-      slots[1].connected ? "true" : "false", sleepMode ? "true" : "false",
-      slots[0].batteryLevel, slots[1].batteryLevel);
-}
-
-void processSerialLine(const char *line) {
-  String s(line);
-  s.trim();
-  if (s.length() == 0 || s.charAt(0) != '{')
-    return;
-
-  if (s.indexOf("\"get_config\"") >= 0) {
-    sendConfig();
-  } else if (s.indexOf("\"set_config\"") >= 0) {
-    float val;
-    if (jsonFloat(s, "air", val))
-      airMouseSensitivity = constrain(val, 100.0f, 10000.0f);
-    if (jsonFloat(s, "tpad", val))
-      trackpadSensitivity = constrain(val, 0.5f, 50.0f);
-    if (jsonFloat(s, "scroll", val))
-      scrollSensitivity = constrain(val, 0.5f, 50.0f);
-    savePreferences();
-    sendConfig();
-  } else if (s.indexOf("\"get_status\"") >= 0) {
-    sendStatus();
-  } else if (s.indexOf("\"set_mode\"") >= 0) {
-    int m;
-    if (jsonInt(s, "mode", m) && m >= 0 && m <= 2) {
-      currentMode = (DeviceMode)m;
-      ledIndicateMode(currentMode);
-      Serial.printf("[MODE] Switched to %s (via serial)\n",
-                    modeNames[currentMode]);
-    }
-    sendStatus();
-  }
-}
-
-void processSerialCommands() {
-  while (Serial.available()) {
-    char c = Serial.read();
-    if (c == '\n' || c == '\r') {
-      if (serialBufPos > 0) {
-        serialBuf[serialBufPos] = '\0';
-        processSerialLine(serialBuf);
-        serialBufPos = 0;
-      }
-    } else if (serialBufPos < (int)sizeof(serialBuf) - 1) {
-      serialBuf[serialBufPos++] = c;
-    }
-  }
-
-  // Active slot changed: update battery report
-  static int prevReportedActiveSlot = -1;
-  if (prevReportedActiveSlot != activeSlot) {
-    updateBatteryReport(activeSlot);
-    prevReportedActiveSlot = activeSlot;
-  }
+  s.prevClickBtn = s.current.clickBtn;
+  s.prevHomeBtn = s.current.homeBtn;
+  s.prevAppBtn = s.current.appBtn;
+  s.prevVolDownBtn = s.current.volDownBtn;
+  s.prevVolUpBtn = s.current.volUpBtn;
 }
 
 // ─── Setup ──────────────────────────────────────────────────────────────────
@@ -1118,7 +911,7 @@ void setup() {
   delay(1000);
 
   Serial.println("==========================================");
-  Serial.println("  Daydream Air Mouse v1.1                 ");
+  Serial.println("  Daydream Air Mouse v1.0                 ");
   Serial.println("==========================================");
   Serial.println();
 
@@ -1133,11 +926,11 @@ void setup() {
   // Load saved preferences
   loadPreferences();
 
-  // USB HID (Mouse/Consumer must begin() BEFORE USB.begin() on ESP32-S3)
+  // USB HID
   Mouse.begin();
   ConsumerControl.begin();
-  BatteryReport.begin();
   USB.begin();
+  Serial.println("[USB] HID ready");
 
   // BLE
   NimBLEDevice::init("DaydreamAirMouse");
@@ -1168,17 +961,8 @@ static unsigned long lastReconnectAttempt = 0;
 static unsigned long lastStatusPrint = 0;
 
 void loop() {
-  // ── Save deferred preferences to flash (avoid NVS wear) ──
-  if (pendingPrefsSave && millis() - lastSensChangeTime > 3000) {
-    savePreferences();
-    pendingPrefsSave = false;
-  }
-
-  // ── Serial command processing (Web Configurator) ──
-  processSerialCommands();
-
-  // ── LED update (handles breathing + flash timing without blocking) ──
-  ledUpdate();
+  // ── LED breathing animation ──
+  ledUpdateBreathing();
 
   // ── Auto-sleep: stop scanning if no controller found for 2 min ──
   bool anyConnected = false;
@@ -1215,7 +999,6 @@ void loop() {
         ledSetBreathing();
         startScan();
       } else {
-        lastControllerActivity = millis(); // Reset sleep timer on wake/switch
         int newSlot = (activeSlot + 1) % MAX_CONTROLLERS;
         if (slots[newSlot].connected) {
           activeSlot = newSlot;
@@ -1232,21 +1015,11 @@ void loop() {
     }
   }
 
-  // ── Handle pending connections (dispatch to background task) ──
+  // ── Handle pending connections ──
   for (int i = 0; i < MAX_CONTROLLERS; i++) {
-    if (slots[i].doConnect && !slots[i].connectingInProgress) {
+    if (slots[i].doConnect) {
       slots[i].doConnect = false;
-      startConnectTask(i);
-    }
-  }
-
-  // ── Poll connection results ──
-  for (int i = 0; i < MAX_CONTROLLERS; i++) {
-    if (slots[i].connectResult != 0) {
-      int result = slots[i].connectResult;
-      slots[i].connectResult = 0;
-
-      if (result == 1) {
+      if (connectToController(i)) {
         Serial.printf("[SLOT %d] Ready!\n", i);
         if (!slots[activeSlot].connected ||
             !slots[activeSlot].notificationsWorking) {
@@ -1255,7 +1028,15 @@ void loop() {
         }
         ledIndicateSlot(activeSlot);
       } else {
+        slots[i].device = nullptr;
         slots[i].hasAddress = false;
+        for (int j = 0; j < knownAddressCount; j++) {
+          if (knownAddresses[j] == slots[i].address) {
+            knownAddresses[j] = knownAddresses[knownAddressCount - 1];
+            knownAddressCount--;
+            break;
+          }
+        }
       }
     }
   }
@@ -1283,9 +1064,8 @@ void loop() {
       if (now - lastReconnectAttempt > interval) {
         lastReconnectAttempt = now;
         for (int i = 0; i < MAX_CONTROLLERS; i++) {
-          if (!slots[i].connected && !slots[i].doConnect) {
-            slots[i].hasAddress = false; // Clear limbo state
-          }
+          if (!slots[i].connected && !slots[i].doConnect)
+            slots[i].device = nullptr;
         }
         startScan();
       }
@@ -1294,56 +1074,26 @@ void loop() {
 
   // ── Switch combo on ALL controllers ──
   for (int i = 0; i < MAX_CONTROLLERS; i++) {
-    if (slots[i].connected && slots[i].notificationsWorking) {
-      DaydreamState c;
-      portENTER_CRITICAL(&stateMux);
-      c = slots[i].current;
-      portEXIT_CRITICAL(&stateMux);
-
-      checkSwitchCombo(slots[i], c);
-    }
+    if (slots[i].connected && slots[i].notificationsWorking)
+      checkSwitchCombo(slots[i]);
   }
 
   // ── Active controller data ──
   ControllerSlot &active = slots[activeSlot];
-  bool doProcess = false;
-  DaydreamState lockedCurrent, lockedPrevious;
-
-  portENTER_CRITICAL(&stateMux);
   if (active.connected && active.stateUpdated) {
-    lockedCurrent = active.current;
-    lockedPrevious = active.previous;
-    active.stateUpdated = false;
-    doProcess = true;
-  }
-  portEXIT_CRITICAL(&stateMux);
-
-  if (doProcess) {
-    processMovement(active, lockedCurrent, lockedPrevious);
-    processButtons(active, lockedCurrent);
+    processMovement(active);
+    processButtons(active);
   }
 
   // ── Inactive slots: update edge state ──
   for (int i = 0; i < MAX_CONTROLLERS; i++) {
-    if (i != activeSlot) {
-      DaydreamState c;
-      bool updated = false;
-
-      portENTER_CRITICAL(&stateMux);
-      if (slots[i].stateUpdated) {
-        c = slots[i].current;
-        slots[i].stateUpdated = false;
-        updated = true;
-      }
-      portEXIT_CRITICAL(&stateMux);
-
-      if (updated) {
-        slots[i].prevClickBtn = c.clickBtn;
-        slots[i].prevHomeBtn = c.homeBtn;
-        slots[i].prevAppBtn = c.appBtn;
-        slots[i].prevVolDownBtn = c.volDownBtn;
-        slots[i].prevVolUpBtn = c.volUpBtn;
-      }
+    if (i != activeSlot && slots[i].stateUpdated) {
+      slots[i].prevClickBtn = slots[i].current.clickBtn;
+      slots[i].prevHomeBtn = slots[i].current.homeBtn;
+      slots[i].prevAppBtn = slots[i].current.appBtn;
+      slots[i].prevVolDownBtn = slots[i].current.volDownBtn;
+      slots[i].prevVolUpBtn = slots[i].current.volUpBtn;
+      slots[i].stateUpdated = false;
     }
   }
 
@@ -1359,10 +1109,5 @@ void loop() {
     }
   }
 
-  // ── Non-blocking media key release ──
-  if (globalMediaReleaseTimer > 0 && millis() > globalMediaReleaseTimer) {
-    ConsumerControl.release();
-    globalMediaReleaseTimer = 0;
-  }
   delay(1);
 }

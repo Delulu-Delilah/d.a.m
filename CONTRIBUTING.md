@@ -23,12 +23,12 @@ Nice to have:
 
 | Chip | BLE | USB HID | Status |
 |------|-----|---------|--------|
-| ESP32-S3 | Yes | Yes (Native USB-OTG) | **Supported** |
-| ESP32-S2 | No BLE | Yes (Native USB-OTG) | Won't work |
-| ESP32 (original) | Yes | No native USB | Won't work |
-| ESP32-C3 | Yes | No USB HID | Won't work |
-| ESP32-C6 | Yes | No USB HID | Won't work |
-| ESP32-H2 | Yes | No native USB | Won't work |
+| ESP32-S3 | ✅ | ✅ Native USB-OTG | **Supported** |
+| ESP32-S2 | ❌ No BLE | ✅ Native USB-OTG | Won't work |
+| ESP32 (original) | ✅ | ❌ No native USB | Won't work |
+| ESP32-C3 | ✅ | ❌ No USB HID | Won't work |
+| ESP32-C6 | ✅ | ❌ No USB HID | Won't work |
+| ESP32-H2 | ✅ | ❌ No native USB | Won't work |
 
 > **TL;DR**: You need an **ESP32-S3** board with a **native USB** port.
 

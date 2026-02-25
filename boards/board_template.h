@@ -8,18 +8,18 @@
  *
  * ── Board Requirements ──────────────────────────────────────────────────────
  *
- *   REQUIRED:
+ *   ✅ REQUIRED:
  *     - ESP32-S3 chip (BLE 5.0 + native USB-OTG)
  *     - At least 4MB flash
  *     - Native USB port (NOT a USB-UART bridge like CP2102/CH340)
  *     - Arduino framework support in PlatformIO
  *
- *   NICE TO HAVE:
+ *   ⚠️ NICE TO HAVE:
  *     - Built-in LED (for status feedback)
  *     - Boot/reset button (for controller switching)
  *     - Small form factor (to hide in a USB adapter)
  *
- *   WON'T WORK:
+ *   ❌ WON'T WORK:
  *     - ESP32 (original) — no native USB-OTG
  *     - ESP32-C3 — no USB HID support
  *     - Boards with USB-UART bridge only (no native USB)
