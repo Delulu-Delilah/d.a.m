@@ -766,9 +766,11 @@ void processMediaGestures(ControllerSlot &s) {
 
     if (swipeDelta > SWIPE_THRESHOLD) {
       ConsumerControl.press(CONSUMER_CONTROL_SCAN_NEXT);
+      delay(50);
       ConsumerControl.release();
     } else if (swipeDelta < -SWIPE_THRESHOLD) {
       ConsumerControl.press(CONSUMER_CONTROL_SCAN_PREVIOUS);
+      delay(50);
       ConsumerControl.release();
     }
     s.swipeActive = false;
@@ -904,19 +906,23 @@ void processButtons(ControllerSlot &s) {
   if (currentMode == MODE_MEDIA) {
     if (s.current.clickBtn && !s.prevClickBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_PLAY_PAUSE);
+      delay(50);
       ConsumerControl.release();
     }
     if (!comboActive && !sensActive && s.current.appBtn && !s.prevAppBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_MUTE);
+      delay(50);
       ConsumerControl.release();
     }
     if (!sensActive && s.current.volUpBtn && !s.prevVolUpBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
+      delay(50);
       ConsumerControl.release();
     }
     if (!comboActive && !sensActive && s.current.volDownBtn &&
         !s.prevVolDownBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_VOLUME_DECREMENT);
+      delay(50);
       ConsumerControl.release();
     }
   } else {
