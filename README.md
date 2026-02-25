@@ -15,7 +15,6 @@ Uses a **Seeed XIAO ESP32-S3** as a tiny BLE-to-USB bridge that connects to the 
 - **Smart LED feedback** — breathing while scanning, solid when connected, off when sleeping
 - **Auto-sleep** — stops scanning after 2 min if no controller found, press Boot to wake
 - **Updated firmware compatible** — works with both old and new Daydream controller firmware (BLE bonding + CCCD fix)
-- **Cross-platform flasher app** — auto-detects ESP32, progress bar, post-flash verification
 
 ## Hardware
 
@@ -29,23 +28,21 @@ The XIAO ESP32-S3 is one of the smallest ESP32-S3 boards available — small eno
 
 ## Quick Start
 
-### Option 1: Use the Flasher App (recommended)
+### Option 1: Web Installer (recommended)
 
-1. Download the flasher app for your OS from [Releases](../../releases)
-2. Plug in your XIAO ESP32-S3 via USB
-3. Open the app, select the serial port, click **Flash Firmware**
-4. Done! Hold the Home button on your Daydream controller to pair
+Flash directly from your browser — no downloads needed:
+
+### **👉 [Install Firmware](https://delulu-delilah.github.io/daydream-airmouse/)**
+
+> Requires **Chrome** or **Edge** on desktop. Connect your XIAO ESP32-S3 via USB, click Install, select the port, done.
 
 ### Option 2: Build from Source
 
 Requires [PlatformIO](https://platformio.org/):
 
 ```bash
-# Clone the repo
 git clone https://github.com/Delulu-Delilah/daydream-airmouse.git
 cd daydream-airmouse
-
-# Build and flash
 platformio run --target upload
 ```
 
@@ -64,8 +61,8 @@ platformio run --target upload
 | Input | Action |
 |-------|--------|
 | Trackpad click | Left click |
-| App button | Middle click |
-| Vol Down | Right click |
+| App button | Right click |
+| Vol Up / Vol Down | Scroll up / down |
 | Trackpad swipe (air mouse) | Scroll wheel |
 
 ### Media Mode
@@ -86,43 +83,17 @@ platformio run --target upload
 | 1 flash | Slot 0 active |
 | 2 flashes | Slot 1 active |
 
-## Building the Flasher App
-
-The flasher is built with Python + CustomTkinter + esptool:
-
-```bash
-cd flasher
-python3 -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-
-# macOS
-bash build_mac.sh
-
-# Windows
-build_win.bat
-
-# Linux
-bash build_linux.sh
-```
-
 ## Project Structure
 
 ```
 daydream-airmouse/
 ├── src/
-│   └── main.cpp              # ESP32-S3 firmware
-├── platformio.ini             # PlatformIO config
-├── flasher/
-│   ├── flasher.py             # Cross-platform flasher GUI
-│   ├── firmware/              # Pre-built firmware binaries
-│   │   ├── bootloader.bin
-│   │   ├── partitions.bin
-│   │   └── firmware.bin
-│   ├── requirements.txt
-│   ├── build_mac.sh
-│   ├── build_win.bat
-│   └── build_linux.sh
+│   └── main.cpp          # ESP32-S3 firmware
+├── platformio.ini         # PlatformIO config
+├── docs/                  # Web flasher (GitHub Pages)
+│   ├── index.html         # ESP Web Tools install page
+│   ├── manifest.json      # Firmware manifest
+│   └── firmware/          # Pre-built binaries
 └── README.md
 ```
 
@@ -130,7 +101,7 @@ daydream-airmouse/
 
 - Inspired by [Daydream2HID](https://github.com/ryukoposting/daydream2hid) (Zephyr/nRF52840 approach)
 - Daydream BLE protocol based on community reverse-engineering efforts
-- Built with [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino), [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter), and [esptool](https://github.com/espressif/esptool)
+- Built with [NimBLE-Arduino](https://github.com/h2zero/NimBLE-Arduino) and [ESP Web Tools](https://esphome.github.io/esp-web-tools/)
 
 ## License
 

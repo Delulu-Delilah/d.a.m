@@ -45,7 +45,7 @@ static DeviceMode currentMode = MODE_AIR_MOUSE;
 
 static float airMouseSensitivity = 1800.0f;
 static float trackpadSensitivity = 6.0f;
-static float scrollSensitivity = 8.0f;
+static float scrollSensitivity = 3.0f;
 static const float SMOOTH_ALPHA = 0.45f;
 
 static const float AIR_MOUSE_DEADZONE = 0.003f;
@@ -695,11 +695,9 @@ void processMediaGestures(ControllerSlot &s) {
 
     if (swipeDelta > SWIPE_THRESHOLD) {
       ConsumerControl.press(CONSUMER_CONTROL_SCAN_NEXT);
-      delay(50);
       ConsumerControl.release();
     } else if (swipeDelta < -SWIPE_THRESHOLD) {
       ConsumerControl.press(CONSUMER_CONTROL_SCAN_PREVIOUS);
-      delay(50);
       ConsumerControl.release();
     }
     s.swipeActive = false;
@@ -835,23 +833,19 @@ void processButtons(ControllerSlot &s) {
   if (currentMode == MODE_MEDIA) {
     if (s.current.clickBtn && !s.prevClickBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_PLAY_PAUSE);
-      delay(50);
       ConsumerControl.release();
     }
     if (!comboActive && !sensActive && s.current.appBtn && !s.prevAppBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_MUTE);
-      delay(50);
       ConsumerControl.release();
     }
     if (!sensActive && s.current.volUpBtn && !s.prevVolUpBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_VOLUME_INCREMENT);
-      delay(50);
       ConsumerControl.release();
     }
     if (!comboActive && !sensActive && s.current.volDownBtn &&
         !s.prevVolDownBtn) {
       ConsumerControl.press(CONSUMER_CONTROL_VOLUME_DECREMENT);
-      delay(50);
       ConsumerControl.release();
     }
   } else {
@@ -861,15 +855,17 @@ void processButtons(ControllerSlot &s) {
       Mouse.release(MOUSE_LEFT);
 
     if (!comboActive && !sensActive) {
+      // App button = right click
       if (s.current.appBtn && !s.prevAppBtn)
-        Mouse.press(MOUSE_MIDDLE);
-      else if (!s.current.appBtn && s.prevAppBtn)
-        Mouse.release(MOUSE_MIDDLE);
-
-      if (s.current.volDownBtn && !s.prevVolDownBtn)
         Mouse.press(MOUSE_RIGHT);
-      else if (!s.current.volDownBtn && s.prevVolDownBtn)
+      else if (!s.current.appBtn && s.prevAppBtn)
         Mouse.release(MOUSE_RIGHT);
+
+      // Volume buttons = scroll (continuous while held)
+      if (s.current.volUpBtn)
+        Mouse.move(0, 0, 1); // scroll up
+      if (s.current.volDownBtn)
+        Mouse.move(0, 0, -1); // scroll down
     }
   }
 

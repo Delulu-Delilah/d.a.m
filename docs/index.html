@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daydream Air Mouse — Install Firmware</title>
+  <meta name="description" content="Flash the Daydream Air Mouse firmware to your ESP32-S3 directly from the browser.">
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0f;
+      color: #e4e4e7;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      max-width: 520px;
+      width: 100%;
+      background: linear-gradient(145deg, #18181b, #1e1e24);
+      border: 1px solid #27272a;
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .emoji-hero { font-size: 3rem; margin-bottom: 1rem; }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: #71717a;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+
+    .steps {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+
+    .steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      background: #2563eb;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .install-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    esp-web-install-button {
+      --esp-tools-button-color: #2563eb;
+      --esp-tools-button-text-color: #fff;
+    }
+
+    esp-web-install-button button {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: white;
+      border: none;
+      padding: 14px 40px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+    }
+
+    esp-web-install-button button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(37, 99, 235, 0.45);
+    }
+
+    .note {
+      background: #1c1c22;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 1rem;
+      font-size: 0.85rem;
+      color: #a1a1aa;
+      line-height: 1.5;
+    }
+
+    .note strong { color: #e4e4e7; }
+
+    .footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #52525b;
+    }
+
+    .footer a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    .footer a:hover { text-decoration: underline; }
+
+    .unsupported {
+      display: none;
+      text-align: center;
+      padding: 1rem;
+      background: #2d1b1b;
+      border: 1px solid #7f1d1d;
+      border-radius: 10px;
+      color: #fca5a5;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 1.5rem; }
+      h1 { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="emoji-hero">🎮</div>
+    <h1>Daydream Air Mouse</h1>
+    <p class="subtitle">
+      Turn a Google Daydream controller into a wireless USB air mouse
+      and media remote using an ESP32-S3.
+    </p>
+
+    <ol class="steps">
+      <li>
+        <span class="step-num">1</span>
+        <span>Connect your <strong>XIAO ESP32-S3</strong> to your computer via USB</span>
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        <span>Click the install button below and select the serial port</span>
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        <span>Wait for the flash to complete, then pair your Daydream controller</span>
+      </li>
+    </ol>
+
+    <div id="unsupported" class="unsupported">
+      ⚠️ Web Serial is not supported in this browser. Please use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong>.
+    </div>
+
+    <div class="install-wrapper">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate">⚡ Install Firmware</button>
+        <span slot="unsupported" id="unsupported-slot"></span>
+        <span slot="not-allowed" id="not-allowed-slot"></span>
+      </esp-web-install-button>
+    </div>
+
+    <div class="note">
+      <strong>Tip:</strong> If the board isn't detected, try holding the
+      <strong>BOOT</strong> button while plugging in the USB cable.
+      Works with <strong>Chrome</strong> and <strong>Edge</strong> on desktop.
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://github.com/Delulu-Delilah/daydream-airmouse">View on GitHub</a>
+    &nbsp;·&nbsp; MIT License
+  </div>
+
+  <script>
+    if (!("serial" in navigator)) {
+      document.getElementById("unsupported").style.display = "block";
+    }
+  </script>
+</body>
+</html>

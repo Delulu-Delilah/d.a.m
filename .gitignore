@@ -1,6 +1,7 @@
 # PlatformIO
 .pio/
 .pioenvs/
+.piocache/
 .piolibdeps/
 
 # IDE
@@ -8,17 +9,7 @@
 .idea/
 *.swp
 *.swo
-*~
+
+# OS
 .DS_Store
-
-# Flasher build artifacts
-flasher/venv/
-flasher/build/
-flasher/dist/
-flasher/__pycache__/
-flasher/*.spec
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
+Thumbs.db
