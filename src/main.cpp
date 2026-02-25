@@ -700,7 +700,7 @@ void connectToControllerTask(void *param) {
 void startConnectTask(int slotIdx) {
   slots[slotIdx].connectingInProgress = true;
   slots[slotIdx].connectResult = 0;
-  xTaskCreatePinnedToCore(connectToControllerTask, "bleConn", 4096,
+  xTaskCreatePinnedToCore(connectToControllerTask, "bleConn", 8192,
                           (void *)(intptr_t)slotIdx,
                           1, // priority
                           NULL,
