@@ -58,7 +58,7 @@ Find the board selection block near the top of `src/main.cpp`:
 ```c
 #if defined(BOARD_XIAO_ESP32S3)
   #include "../boards/xiao_esp32s3.h"
-// ── Add new boards here ──
+// ── Community boards (untested) ──
 #elif defined(BOARD_YOUR_BOARD)
   #include "../boards/your_board.h"
 #else

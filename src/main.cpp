@@ -63,8 +63,16 @@ static const int BOOT_BTN_PIN = BOARD_BOOT_PIN;
 static const bool LED_INVERT = BOARD_LED_INVERTED;
 
 // LED polarity helpers (active-low vs active-high)
-#define LED_ON() digitalWrite(LED_PIN, LED_INVERT ? LOW : HIGH)
-#define LED_OFF() digitalWrite(LED_PIN, LED_INVERT ? HIGH : LOW)
+#define LED_ON()                                                               \
+  do {                                                                         \
+    if (LED_PIN >= 0)                                                          \
+      digitalWrite(LED_PIN, LED_INVERT ? LOW : HIGH);                          \
+  } while (0)
+#define LED_OFF()                                                              \
+  do {                                                                         \
+    if (LED_PIN >= 0)                                                          \
+      digitalWrite(LED_PIN, LED_INVERT ? HIGH : LOW);                          \
+  } while (0)
 
 // ─── Device Modes ───────────────────────────────────────────────────────────
 
@@ -241,16 +249,22 @@ void ledUpdateBreathing() {
 }
 
 void ledSetBreathing() {
+  if (LED_PIN < 0)
+    return;
   ledState = LED_STATE_BREATHING;
   ledBreathPhase = 0;
 }
 
 void ledSetSolid() {
+  if (LED_PIN < 0)
+    return;
   ledState = LED_STATE_SOLID;
   LED_ON();
 }
 
 void ledSetOff() {
+  if (LED_PIN < 0)
+    return;
   ledState = LED_STATE_OFF;
   LED_OFF();
 }
@@ -793,9 +807,9 @@ void checkSensitivityCombo(ControllerSlot &s) {
   if (s.current.homeBtn && s.current.volUpBtn && !sensComboFired) {
     sensComboFired = true;
     float factor = 1.0f + SENSITIVITY_STEP;
-    airMouseSensitivity *= factor;
-    trackpadSensitivity *= factor;
-    scrollSensitivity *= factor;
+    airMouseSensitivity = fminf(airMouseSensitivity * factor, 20000.0f);
+    trackpadSensitivity = fminf(trackpadSensitivity * factor, 60.0f);
+    scrollSensitivity = fminf(scrollSensitivity * factor, 30.0f);
     Serial.printf("[SENS] ↑ air=%.0f tpad=%.1f scroll=%.1f\n",
                   airMouseSensitivity, trackpadSensitivity, scrollSensitivity);
     savePreferences();
@@ -930,8 +944,10 @@ void setup() {
   ledSetBreathing();
 
   // Boot button
-  pinMode(BOOT_BTN_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(BOOT_BTN_PIN), bootBtnISR, FALLING);
+  if (BOOT_BTN_PIN >= 0) {
+    pinMode(BOOT_BTN_PIN, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(BOOT_BTN_PIN), bootBtnISR, FALLING);
+  }
 
   // Load saved preferences
   loadPreferences();

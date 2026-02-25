@@ -44,6 +44,11 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 | Board | Status | Notes |
 |-------|--------|-------|
 | [Seeed XIAO ESP32-S3](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) | ✅ Official | 21×17.5mm, smallest option |
+| [ESP32-S3-DevKitC-1](https://www.espressif.com/en/products/devkits) | ⚠️ Untested | Espressif official dev board |
+| [Adafruit QT Py ESP32-S3](https://www.adafruit.com/product/5426) | ⚠️ Untested | Compact STEMMA QT form factor |
+| [LOLIN S3 Mini](https://www.wemos.cc/en/latest/s3/s3_mini.html) | ⚠️ Untested | Wemos D1 Mini form factor |
+| [Unexpected Maker TinyS3](https://unexpectedmaker.com/shop/tinys3) | ⚠️ Untested | Ultra-compact, battery mgmt |
+| [Waveshare ESP32-S3-Zero](https://www.waveshare.com/esp32-s3-zero.htm) | ⚠️ Untested | Budget zero form factor |
 
 > **Want to add your board?** See [CONTRIBUTING.md](CONTRIBUTING.md) — any ESP32-S3 board with native USB works.
 
