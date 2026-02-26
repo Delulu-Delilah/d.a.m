@@ -34,7 +34,7 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 | Resource | Link |
 |----------|------|
 | 📹 Video Tutorial | *Coming soon* |
-| 🖨️ 3D Printable Case | Remix in progress (Based on [Snap-fit case](https://www.printables.com/model/1143379-snap-fit-case-for-seeed-studio-xiao-esp32s3/collections) & [Case with Antenna](https://www.printables.com/model/1445678-case-for-seeed-xiao-esp32s3-and-the-default-antenn)) |
+| 🖨️ 3D Printable Case | [Download on Printables](https://www.printables.com/model/1616249-xiao-esp32-s3-antenna-case-with-buttons) |
 | ⚡ Web Flasher | [Flash from browser](https://delulu-delilah.github.io/d.a.m/) |
 | 📖 Add Your Board | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | 🛒 Hardware | [Buy XIAO ESP32-S3](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) |
