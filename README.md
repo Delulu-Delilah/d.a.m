@@ -28,6 +28,7 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 - **Smart LED feedback** — breathing while scanning, solid when connected, off when sleeping
 - **Auto-sleep** — stops scanning after 2 min, Boot button to wake
 - **Multi-board support** — bring your own ESP32-S3 board ([add yours!](CONTRIBUTING.md))
+- **T-Dongle display** — on [LilyGo T-Dongle S3](https://lilygo.cc/products/t-dongle-s3)–class dongles with an ST7735 160×80 screen, the firmware shows a small dashboard (mode, BLE, 3D controller wireframe, trackpad dot, button state)
 
 ## Resources
 
@@ -50,6 +51,7 @@ Uses an **ESP32-S3** board as a tiny BLE-to-USB bridge that connects to the Dayd
 | [LOLIN S3 Mini](https://www.wemos.cc/en/latest/s3/s3_mini.html) | ⚠️ Untested | Wemos D1 Mini form factor |
 | [Unexpected Maker TinyS3](https://unexpectedmaker.com/shop/tinys3) | ⚠️ Untested | Ultra-compact, battery mgmt |
 | [Waveshare ESP32-S3-Zero](https://www.waveshare.com/esp32-s3-zero.htm) | ⚠️ Untested | Budget zero form factor |
+| [LilyGo T-Dongle S3](https://lilygo.cc/products/t-dongle-s3) | ⚠️ Untested | ESP32-S3 USB dongle + ST7735 160×80 TFT ([`t_dongle_s3`](platformio.ini) env, LovyanGFX dashboard) |
 
 > **Want to add your board?** See [CONTRIBUTING.md](CONTRIBUTING.md) — any ESP32-S3 board with native USB works.
 
@@ -73,6 +75,9 @@ cd daydream-airmouse
 
 # Build for XIAO ESP32-S3 (default)
 platformio run -e xiao_esp32s3
+
+# LilyGo T-Dongle S3 (ST7735 160×80 — see boards/t_dongle_s3.h)
+platformio run -e t_dongle_s3
 
 # Flash
 platformio run -e xiao_esp32s3 --target upload
@@ -166,11 +171,15 @@ The XIAO ESP32-S3 uses USB CDC for serial. After the firmware boots and starts U
 ## Project Structure
 
 ```
-daydream-airmouse/
+d.a.m/
 ├── src/main.cpp               # Firmware (board-agnostic)
+├── src/axis_display.cpp       # ST7735 UI (T-Dongle only)
+├── include/                   # T-Dongle: LovyanGFX + mesh wireframe data
 ├── boards/                    # Board configs
 │   ├── xiao_esp32s3.h         # Official board
+│   ├── t_dongle_s3.h          # LilyGo T-Dongle class (ST7735)
 │   └── board_template.h       # Template for new boards
+├── scripts/gen_daydream_wireframe.py  # Regenerate mesh from daydream.json
 ├── platformio.ini             # Multi-board PlatformIO config
 ├── docs/                      # Web flasher (GitHub Pages)
 │   ├── index.html             # Install page with board selector
