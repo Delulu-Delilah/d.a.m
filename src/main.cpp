@@ -53,9 +53,15 @@
 #include "../boards/um_tinys3.h"
 #elif defined(BOARD_WAVESHARE_ESP32S3_ZERO)
 #include "../boards/waveshare_esp32s3_zero.h"
+#elif defined(BOARD_T_DONGLE_S3)
+#include "../boards/t_dongle_s3.h"
 #else
 // Default: XIAO ESP32-S3
 #include "../boards/xiao_esp32s3.h"
+#endif
+
+#if defined(BOARD_T_DONGLE_S3)
+#include "axis_display.hpp"
 #endif
 
 // Resolve board config into internal constants
@@ -1029,6 +1035,10 @@ void setup() {
   USB.begin();
   Serial.println("[USB] HID ready");
 
+#if defined(BOARD_T_DONGLE_S3)
+  axisDisplayInit();
+#endif
+
   // BLE
   NimBLEDevice::init("DaydreamAirMouse");
   NimBLEDevice::setSecurityAuth(true, false, true);
@@ -1082,32 +1092,33 @@ void loop() {
         "[SLEEP] No controllers found — sleeping. Press Boot to wake.");
   }
 
-  // ── Boot button: wake or switch ──
+  // ── Boot button: wake or switch active controller slot ──
   if (bootBtnPressed) {
     bootBtnPressed = false;
     unsigned long now = millis();
-    if (now - lastBootBtnTime > 300) {
-      lastBootBtnTime = now;
 
-      if (sleepMode) {
+    if (sleepMode) {
+      if (now - lastBootBtnTime > 300) {
+        lastBootBtnTime = now;
         sleepMode = false;
         lastControllerActivity = millis();
         Serial.println("[WAKE] Resuming scan...");
         ledSetBreathing();
         startScan();
+      }
+    } else if (now - lastBootBtnTime > 300) {
+      lastBootBtnTime = now;
+      int newSlot = (activeSlot + 1) % MAX_CONTROLLERS;
+      if (slots[newSlot].connected) {
+        activeSlot = newSlot;
+        Serial.printf("[SWITCH] Slot %d\n", activeSlot);
+        ledIndicateSlot(activeSlot);
       } else {
-        int newSlot = (activeSlot + 1) % MAX_CONTROLLERS;
-        if (slots[newSlot].connected) {
-          activeSlot = newSlot;
-          Serial.printf("[SWITCH] Slot %d\n", activeSlot);
-          ledIndicateSlot(activeSlot);
-        } else {
-          ledFlash(5, 30, 30);
-          if (anyConnected)
-            ledSetSolid();
-          else
-            ledSetBreathing();
-        }
+        ledFlash(5, 30, 30);
+        if (anyConnected)
+          ledSetSolid();
+        else
+          ledSetBreathing();
       }
     }
   }
@@ -1205,6 +1216,30 @@ void loop() {
         Serial.printf("  Slot %d: %lu pkts\n", i, slots[i].notifyCount);
     }
   }
+
+#if defined(BOARD_T_DONGLE_S3)
+  {
+    ControllerSlot &a = slots[activeSlot];
+    DongleDisplayInput ddi = {};
+    ddi.connected = a.connected;
+    ddi.scanning = scanning;
+    ddi.deviceMode = (uint8_t)currentMode;
+    ddi.xOri = a.current.xOri;
+    ddi.yOri = a.current.yOri;
+    ddi.zOri = a.current.zOri;
+    ddi.xGyro = a.current.xGyro;
+    ddi.yGyro = a.current.yGyro;
+    ddi.zGyro = a.current.zGyro;
+    ddi.clickBtn = a.current.clickBtn;
+    ddi.homeBtn = a.current.homeBtn;
+    ddi.appBtn = a.current.appBtn;
+    ddi.volDownBtn = a.current.volDownBtn;
+    ddi.volUpBtn = a.current.volUpBtn;
+    ddi.xTouch = a.current.xTouch;
+    ddi.yTouch = a.current.yTouch;
+    axisDisplayTick(ddi);
+  }
+#endif
 
   delay(1);
 }
